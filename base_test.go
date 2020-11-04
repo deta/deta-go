@@ -1,6 +1,7 @@
 package deta
 
 import (
+	"errors"
 	"os"
 	"reflect"
 	"testing"
@@ -15,9 +16,9 @@ type nestedCustomTestStruct struct {
 }
 
 type customTestStruct struct {
-	TestKey    string                 `json:"key"`
-	TestValue  string                 `json:"test_value"`
-	TestNested nestedCustomTestStruct `json:"test_nested_struct"`
+	TestKey    string                  `json:"key"`
+	TestValue  string                  `json:"test_value"`
+	TestNested *nestedCustomTestStruct `json:"test_nested_struct"`
 }
 
 func SetUp() (*Base, error) {
@@ -36,27 +37,29 @@ func TestModifyItem(t *testing.T) {
 
 	testStructCases := []struct {
 		item         customTestStruct
-		modifiedItem customTestStruct
+		modifiedItem baseItem
 	}{
 		{
 			item: customTestStruct{
 				TestKey:   "key",
 				TestValue: "value",
-				TestNested: nestedCustomTestStruct{
-					TestInt:  1,
-					TestBool: true,
-					TestList: []string{"a", "b"},
-					TestMap:  map[string]string{"a": "b"},
+				TestNested: &nestedCustomTestStruct{
+					TestInt:    1,
+					TestBool:   true,
+					TestList:   []string{"a", "b"},
+					TestString: "test",
+					TestMap:    map[string]string{"a": "b"},
 				},
 			},
-			modifiedItem: customTestStruct{
-				TestKey:   "key",
-				TestValue: "value",
-				TestNested: nestedCustomTestStruct{
-					TestInt:  1,
-					TestBool: true,
-					TestList: []string{"a", "b"},
-					TestMap:  map[string]string{"a": "b"},
+			modifiedItem: baseItem{
+				"key":        "key",
+				"test_value": "value",
+				"test_nested_struct": map[string]interface{}{
+					"test_int":    float64(1),
+					"test_bool":   true,
+					"test_list":   []interface{}{"a", "b"},
+					"test_map":    map[string]interface{}{"a": "b"},
+					"test_string": "test",
 				},
 			},
 		},
@@ -64,46 +67,46 @@ func TestModifyItem(t *testing.T) {
 
 	testMapCases := []struct {
 		item         map[string]interface{}
-		modifiedItem map[string]interface{}
+		modifiedItem baseItem
 	}{
 		{
 			item: map[string]interface{}{
 				"key":  "abcd",
 				"name": "test",
 			},
-			modifiedItem: map[string]interface{}{
+			modifiedItem: baseItem{
 				"key":  "abcd",
 				"name": "test",
 			},
 		},
 	}
 
-	testNativeCases := []struct {
-		item         interface{}
-		modifiedItem interface{}
+	testBadCases := []struct {
+		item interface{}
+		err  error
 	}{
-		{"a string", map[string]interface{}{"value": "a string"}},
-		{1, map[string]interface{}{"value": 1}},
-		{true, map[string]interface{}{"value": true}},
-		{[]string{"a", "b"}, map[string]interface{}{"value": []string{"a", "b"}}},
+		{"a string", ErrBadItem},
+		{1, ErrBadItem},
+		{true, ErrBadItem},
+		{[]string{"a", "b"}, ErrBadItem},
 	}
 
 	for _, tc := range testStructCases {
-		o := base.modifyItem(tc.item)
+		o, _ := base.modifyItem(tc.item)
 		if !reflect.DeepEqual(o, tc.modifiedItem) {
 			t.Errorf("Failed to modify struct.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
 		}
 	}
 	for _, tc := range testMapCases {
-		o := base.modifyItem(tc.item)
+		o, _ := base.modifyItem(tc.item)
 		if !reflect.DeepEqual(o, tc.modifiedItem) {
 			t.Errorf("Failed to modify map.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
 		}
 	}
-	for _, tc := range testNativeCases {
-		o := base.modifyItem(tc.item)
-		if !reflect.DeepEqual(o, tc.modifiedItem) {
-			t.Errorf("Failed to modify native.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
+	for _, tc := range testBadCases {
+		o, err := base.modifyItem(tc.item)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value for item %v.\nExpected: %v\nGot Item: %v\nGot Error:%v", tc.item, tc.err, o, err)
 		}
 	}
 }

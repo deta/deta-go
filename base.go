@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"reflect"
 	"strings"
 )
 
@@ -14,6 +13,8 @@ var (
 	ErrBadProjectKey = errors.New("bad project key")
 	// ErrTooManyItems too many items
 	ErrTooManyItems = errors.New("too many items")
+	// ErrBadItem bad item
+	ErrBadItem = errors.New("bad item")
 )
 
 // Base deta base
@@ -27,6 +28,9 @@ type Base struct {
 	// Util base utilities
 	Util *util
 }
+
+// Items always stored as a map of string to interface{}
+type baseItem map[string]interface{}
 
 // Query datatype
 type Query []map[string]interface{}
@@ -55,39 +59,19 @@ func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
 	}, nil
 }
 
-// checks if item is a struct or a map
-// if not adds the item as a 'value' field
-func (b *Base) modifyItem(item interface{}) interface{} {
-	// check item type
-	switch reflect.ValueOf(item).Kind() {
-	// if struct return item as is
-	case reflect.Struct:
-		return item
-	// if pointer check type of value ptr is pointing to
-	case reflect.Ptr:
-		switch reflect.Indirect(reflect.ValueOf(item)).Elem().Kind() {
-		case reflect.Struct:
-			return item
-		case reflect.Map:
-			return item
-		default:
-			return map[string]interface{}{
-				"value": item,
-			}
-		}
-	// if map return as is
-	case reflect.Map:
-		return item
-	// other cases (ints, bools, strings etc)
-	// put the item under field value
-	default:
-		return map[string]interface{}{
-			"value": item,
-		}
+// modifies item to a baseItem
+func (b *Base) modifyItem(item interface{}) (baseItem, error) {
+	data, err := json.Marshal(item)
+	if err != nil {
+		return nil, ErrBadItem
 	}
+	var bi baseItem
+	err = json.Unmarshal(data, &bi)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+	}
+	return bi, nil
 }
-
-type baseItem map[string]interface{}
 
 type putResponse struct {
 	Processed map[string][]baseItem `json:"processed"`
@@ -96,9 +80,13 @@ type putResponse struct {
 
 func (b *Base) put(items []interface{}) ([]string, error) {
 
-	var modifiedItems []interface{}
+	var modifiedItems []baseItem
 	for _, item := range items {
-		modifiedItems = append(modifiedItems, b.modifyItem(item))
+		bi, err := b.modifyItem(item)
+		if err != nil {
+			return nil, err
+		}
+		modifiedItems = append(modifiedItems, bi)
 	}
 
 	body := map[string]interface{}{
@@ -176,10 +164,15 @@ func (b *Base) Get(key string, dest interface{}) error {
 
 // Insert inserts an item in the database only if the key does not exist
 func (b *Base) Insert(item interface{}) (string, error) {
+	modifiedItem, err := b.modifyItem(item)
+	if err != nil {
+		return "", err
+	}
+
 	o, err := b.client.request(&requestInput{
 		Path:   "/items",
 		Method: "POST",
-		Body:   b.modifyItem(item),
+		Body:   modifiedItem,
 	})
 
 	if err != nil {

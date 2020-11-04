@@ -15,6 +15,8 @@ var (
 	ErrTooManyItems = errors.New("too many items")
 	// ErrBadItem bad item
 	ErrBadItem = errors.New("bad item")
+	// ErrBadDestination bad destination
+	ErrBadDestination = errors.New("bad destination")
 )
 
 // Base deta base
@@ -53,7 +55,7 @@ func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
 	return &Base{
 		client: newDetaClient(rootEndpoint, &authInfo{
 			authType:    "api-key",
-			headerKey:   "X-Deta-API-Key",
+			headerKey:   "X-API-Key",
 			headerValue: projectKey,
 		}),
 	}, nil
@@ -157,7 +159,7 @@ func (b *Base) Get(key string, dest interface{}) error {
 	}
 	err = json.Unmarshal(o.Body, &dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrBadDestination, err)
 	}
 	return nil
 }
@@ -281,55 +283,35 @@ func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
 }
 
 // Fetch fetches maximum 'limit' items from the database based on the 'query'
-// Provide a 0 limit to fetch everything from the database
-// Fetch is paginated, can submit multiple requests
-// It scans the items onto 'dest'
+// Provide a 'limit' value of 0 or less to apply no limits
+// It scans the result onto 'dest'
 // A nil query fetches all items from the database
-func (b *Base) Fetch(query Query, limit int, dest interface{}) error {
+// Fetch is paginated, returns the last key fetched if further pages are left
+func (b *Base) Fetch(query Query, dest interface{}, limit int) (string, error) {
 	req := &fetchRequest{
 		Query: query,
 	}
-	if limit != 0 {
+	if limit > 0 {
 		req.Limit = &limit
 	}
 
-	firstIteration := true
-
 	res, err := b.fetch(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	var totalItems []baseItem
-	for res.Paging.Last != nil || firstIteration {
-		firstIteration = false
-
-		req.Last = res.Paging.Last
-		res, err := b.fetch(req)
-		if err != nil {
-			return err
-		}
-
-		data, err := json.Marshal(res.Items)
-		if err != nil {
-			return err
-		}
-
-		var items []baseItem
-		err = json.Unmarshal(data, &items)
-		if err != nil {
-			return err
-		}
-		totalItems = append(totalItems, items...)
-	}
-
-	if len(totalItems) > limit {
-		totalItems = totalItems[:limit]
-	}
-
-	data, err := json.Marshal(totalItems)
+	data, err := json.Marshal(res.Items)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return json.Unmarshal(data, &dest)
+	err = json.Unmarshal(data, &dest)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrBadDestination, err)
+	}
+
+	lastKey := ""
+	if res.Paging.Last != nil {
+		lastKey = *res.Paging.Last
+	}
+	return lastKey, nil
 }

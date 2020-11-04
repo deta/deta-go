@@ -13,10 +13,10 @@ var (
 	ErrBadProjectKey = errors.New("bad project key")
 	// ErrTooManyItems too many items
 	ErrTooManyItems = errors.New("too many items")
-	// ErrBadItem bad item
-	ErrBadItem = errors.New("bad item")
 	// ErrBadDestination bad destination
 	ErrBadDestination = errors.New("bad destination")
+	// ErrBadItem = errors.New("bad items")
+	ErrBadItem = errors.New("bad item")
 )
 
 // Base deta base
@@ -61,7 +61,22 @@ func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
 	}, nil
 }
 
-// modifies item to a baseItem
+func (b *Base) removeEmptyKey(bi baseItem) error {
+	key, ok := bi["key"]
+	if !ok {
+		return nil
+	}
+	switch key.(type) {
+	case string:
+		if key == "" {
+			delete(bi, "key")
+		}
+		return nil
+	default:
+		return fmt.Errorf("%w: %v", ErrBadItem, "Key is not a string")
+	}
+}
+
 func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 	data, err := json.Marshal(item)
 	if err != nil {
@@ -72,6 +87,30 @@ func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
 	}
+	err = b.removeEmptyKey(bi)
+	if err != nil {
+		return nil, err
+	}
+	return bi, nil
+}
+
+// modifies items to a []baseItem
+func (b *Base) modifyItems(items interface{}) ([]baseItem, error) {
+	data, err := json.Marshal(items)
+	if err != nil {
+		return nil, ErrBadItem
+	}
+	var bi []baseItem
+	err = json.Unmarshal(data, &bi)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+	}
+	for _, item := range bi {
+		err = b.removeEmptyKey(item)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return bi, nil
 }
 
@@ -80,19 +119,9 @@ type putResponse struct {
 	Failed    map[string][]baseItem `json:"failed"`
 }
 
-func (b *Base) put(items []interface{}) ([]string, error) {
-
-	var modifiedItems []baseItem
-	for _, item := range items {
-		bi, err := b.modifyItem(item)
-		if err != nil {
-			return nil, err
-		}
-		modifiedItems = append(modifiedItems, bi)
-	}
-
+func (b *Base) put(items []baseItem) ([]string, error) {
 	body := map[string]interface{}{
-		"items": modifiedItems,
+		"items": items,
 	}
 	o, err := b.client.request(&requestInput{
 		Path:   "/items",
@@ -127,7 +156,12 @@ func (b *Base) Put(item interface{}) (string, error) {
 	}
 
 	items := []interface{}{item}
-	putKeys, err := b.put(items)
+	modifiedItems, err := b.modifyItems(items)
+	if err != nil {
+		return "", err
+	}
+
+	putKeys, err := b.put(modifiedItems)
 	if err != nil {
 		return "", err
 	}
@@ -136,14 +170,19 @@ func (b *Base) Put(item interface{}) (string, error) {
 
 // PutMany operation for Deta Base
 // Puts at most 25 items at a time
-func (b *Base) PutMany(items []interface{}) ([]string, error) {
-	if len(items) == 0 {
+func (b *Base) PutMany(items interface{}) ([]string, error) {
+	modifiedItems, err := b.modifyItems(items)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(modifiedItems) == 0 {
 		return nil, nil
 	}
-	if len(items) > 25 {
+	if len(modifiedItems) > 25 {
 		return nil, ErrTooManyItems
 	}
-	return b.put(items)
+	return b.put(modifiedItems)
 }
 
 // Get gets an item with 'key' from the database
@@ -190,41 +229,46 @@ func (b *Base) Insert(item interface{}) (string, error) {
 }
 
 type updateRequest struct {
-	Set       map[string]interface{}   `json:"set"`
-	Trim      []string                 `json:"trim"`
-	Append    map[string][]interface{} `json:"append"`
-	Prepend   map[string][]interface{} `json:"prepend"`
-	Increment map[string]interface{}   `json:"increment"`
+	Set       map[string]interface{} `json:"set"`
+	Trim      []string               `json:"trim"`
+	Append    map[string]interface{} `json:"append"`
+	Prepend   map[string]interface{} `json:"prepend"`
+	Increment map[string]interface{} `json:"increment"`
 }
 
 // converts updates to an update request
 func (b *Base) updatesToUpdateRequest(updates Updates) *updateRequest {
-	var updateReq updateRequest
+	updateReq := &updateRequest{
+		Set:       make(map[string]interface{}),
+		Append:    make(map[string]interface{}),
+		Prepend:   make(map[string]interface{}),
+		Increment: make(map[string]interface{}),
+	}
 	for k, v := range updates {
 		switch v.(type) {
-		case trimUtil:
+		case *trimUtil:
 			updateReq.Trim = append(updateReq.Trim, k)
-		case appendUtil:
-			updateReq.Append[k] = v.(appendUtil).value
-		case prependUtil:
-			updateReq.Prepend[k] = v.(prependUtil).value
-		case incrementUtil:
-			updateReq.Increment[k] = v.(incrementUtil).value
+		case *appendUtil:
+			updateReq.Append[k] = v.(*appendUtil).value
+		case *prependUtil:
+			updateReq.Prepend[k] = v.(*prependUtil).value
+		case *incrementUtil:
+			updateReq.Increment[k] = v.(*incrementUtil).value
 		default:
 			updateReq.Set[k] = v
 		}
 	}
-	return &updateReq
+	return updateReq
 }
 
 // Update updates the item with the 'key' with the provide 'updates'
-func (b *Base) Update(updates Updates, key string) error {
+func (b *Base) Update(key string, updates Updates) error {
 	// escape key
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
 	_, err := b.client.request(&requestInput{
-		Path:   fmt.Sprintf("/%s", escapedKey),
+		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",
 		Body:   ur,
 	})
@@ -240,7 +284,7 @@ func (b *Base) Delete(key string) error {
 	escapedKey := url.PathEscape(key)
 
 	_, err := b.client.request(&requestInput{
-		Path:   fmt.Sprintf("/%s", escapedKey),
+		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "DELETE",
 	})
 	if err != nil {

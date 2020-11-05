@@ -1,13 +1,15 @@
 package deta
 
+import "reflect"
+
 // append util
 type appendUtil struct {
-	value []interface{}
+	value interface{}
 }
 
 // prepend util
 type prependUtil struct {
-	value []interface{}
+	value interface{}
 }
 
 // increment util
@@ -21,16 +23,30 @@ type trimUtil struct{}
 type util struct{}
 
 // Append utility
-func (u *util) Append(value []interface{}) *appendUtil {
-	return &appendUtil{
-		value: value,
+func (u *util) Append(value interface{}) *appendUtil {
+	switch reflect.ValueOf(value).Kind() {
+	case reflect.Array:
+		return &appendUtil{
+			value: value,
+		}
+	default:
+		return &appendUtil{
+			value: []interface{}{value},
+		}
 	}
 }
 
 // Prepend utility
-func (u *util) Prepend(value []interface{}) *prependUtil {
-	return &prependUtil{
-		value: value,
+func (u *util) Prepend(value interface{}) *prependUtil {
+	switch reflect.ValueOf(value).Kind() {
+	case reflect.Array:
+		return &prependUtil{
+			value: value,
+		}
+	default:
+		return &prependUtil{
+			value: []interface{}{value},
+		}
 	}
 }
 
@@ -42,6 +58,6 @@ func (u *util) Increment(value interface{}) *incrementUtil {
 }
 
 // Trim utility
-func (u *util) TrimUtil() *trimUtil {
+func (u *util) Trim() *trimUtil {
 	return &trimUtil{}
 }

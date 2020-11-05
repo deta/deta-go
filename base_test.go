@@ -1,62 +1,79 @@
 package deta
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 )
 
 type nestedCustomTestStruct struct {
-	TestInt    int               `json:"test_int"`
-	TestBool   bool              `json:"test_bool"`
-	TestString string            `json:"test_string"`
-	TestMap    map[string]string `json:"test_map"`
-	TestList   []string          `json:"test_list"`
+	TestInt    int      `json:"test_int"`
+	TestBool   bool     `json:"test_bool"`
+	TestString string   `json:"test_string"`
+	TestList   []string `json:"test_list"`
 }
 
 type customTestStruct struct {
-	TestKey    string                 `json:"key"`
-	TestValue  string                 `json:"test_value"`
-	TestNested nestedCustomTestStruct `json:"test_nested_struct"`
+	TestKey    string                  `json:"key"`
+	TestValue  string                  `json:"test_value"`
+	TestNested *nestedCustomTestStruct `json:"test_nested_struct"`
 }
 
-func SetUp() (*Base, error) {
+func Setup(t *testing.T) *Base {
 	projectKey := os.Getenv("TEST_PROJECT_KEY")
 	baseName := os.Getenv("TEST_BASE_NAME")
 	rootEndpoint := os.Getenv("TEST_ENDPOINT")
-	return newBase(projectKey, baseName, rootEndpoint)
-}
-
-func TestModifyItem(t *testing.T) {
-
-	base, err := SetUp()
+	base, err := newBase(projectKey, baseName, rootEndpoint)
 	if err != nil {
 		t.Fatalf("Failed to set up test base: %v", err)
 	}
+	return base
+}
+
+func TearDown(b *Base, t *testing.T) {
+	var items []map[string]interface{}
+	_, err := b.Fetch(nil, &items, 0)
+	if err != nil {
+		t.Log("Failed to fetch items in teardown, further tests might fail")
+	}
+	for _, item := range items {
+		key := item["key"].(string)
+		err := b.Delete(item["key"].(string))
+		if err != nil {
+			t.Logf("Failed to delete test item with key '%s'.\nFurther tests might fail", key)
+		}
+	}
+}
+
+func TestModifyItem(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
 
 	testStructCases := []struct {
 		item         customTestStruct
-		modifiedItem customTestStruct
+		modifiedItem baseItem
 	}{
 		{
 			item: customTestStruct{
 				TestKey:   "key",
 				TestValue: "value",
-				TestNested: nestedCustomTestStruct{
-					TestInt:  1,
-					TestBool: true,
-					TestList: []string{"a", "b"},
-					TestMap:  map[string]string{"a": "b"},
+				TestNested: &nestedCustomTestStruct{
+					TestInt:    1,
+					TestBool:   true,
+					TestList:   []string{"a", "b"},
+					TestString: "test",
 				},
 			},
-			modifiedItem: customTestStruct{
-				TestKey:   "key",
-				TestValue: "value",
-				TestNested: nestedCustomTestStruct{
-					TestInt:  1,
-					TestBool: true,
-					TestList: []string{"a", "b"},
-					TestMap:  map[string]string{"a": "b"},
+			modifiedItem: baseItem{
+				"key":        "key",
+				"test_value": "value",
+				"test_nested_struct": map[string]interface{}{
+					"test_int":    float64(1),
+					"test_bool":   true,
+					"test_list":   []interface{}{"a", "b"},
+					"test_string": "test",
 				},
 			},
 		},
@@ -64,46 +81,437 @@ func TestModifyItem(t *testing.T) {
 
 	testMapCases := []struct {
 		item         map[string]interface{}
-		modifiedItem map[string]interface{}
+		modifiedItem baseItem
 	}{
 		{
 			item: map[string]interface{}{
 				"key":  "abcd",
 				"name": "test",
 			},
-			modifiedItem: map[string]interface{}{
+			modifiedItem: baseItem{
 				"key":  "abcd",
 				"name": "test",
 			},
 		},
 	}
 
-	testNativeCases := []struct {
-		item         interface{}
-		modifiedItem interface{}
+	testBadCases := []struct {
+		item interface{}
+		err  error
 	}{
-		{"a string", map[string]interface{}{"value": "a string"}},
-		{1, map[string]interface{}{"value": 1}},
-		{true, map[string]interface{}{"value": true}},
-		{[]string{"a", "b"}, map[string]interface{}{"value": []string{"a", "b"}}},
+		{"a string", ErrBadItem},
+		{1, ErrBadItem},
+		{true, ErrBadItem},
+		{[]string{"a", "b"}, ErrBadItem},
 	}
 
 	for _, tc := range testStructCases {
-		o := base.modifyItem(tc.item)
+		o, _ := base.modifyItem(tc.item)
 		if !reflect.DeepEqual(o, tc.modifiedItem) {
 			t.Errorf("Failed to modify struct.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
 		}
 	}
 	for _, tc := range testMapCases {
-		o := base.modifyItem(tc.item)
+		o, _ := base.modifyItem(tc.item)
 		if !reflect.DeepEqual(o, tc.modifiedItem) {
 			t.Errorf("Failed to modify map.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
 		}
 	}
-	for _, tc := range testNativeCases {
-		o := base.modifyItem(tc.item)
-		if !reflect.DeepEqual(o, tc.modifiedItem) {
-			t.Errorf("Failed to modify native.\nExpected: %v\nGot: %v", tc.modifiedItem, o)
+	for _, tc := range testBadCases {
+		o, err := base.modifyItem(tc.item)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value for item %v.\nExpected: %v\nGot Item: %v\nGot Error:%v", tc.item, tc.err, o, err)
+		}
+	}
+}
+
+func TestPut(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	testCases := []struct {
+		item customTestStruct
+		err  error
+	}{
+		{
+			item: customTestStruct{
+				TestKey:   "key",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt: 1,
+				},
+			},
+			err: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.Put(tc.item)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value for item %v\n. Expected %v got %v", tc.item, tc.err, err)
+		}
+		var storedItem customTestStruct
+		err = base.Get(tc.item.TestKey, &storedItem)
+		if err != nil {
+			t.Errorf("Failed to get item with key %s", tc.item.TestKey)
+		}
+		if !reflect.DeepEqual(storedItem, tc.item) {
+			t.Errorf("Items not equal.\nExpected:\n%v\nStored:\n%v", tc.item, storedItem)
+		}
+	}
+}
+
+func TestGet(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "a",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt:  1,
+				TestList: []string{"a", "b"},
+				TestBool: true,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+
+	var keys []string
+	for _, item := range testItems {
+		key, err := base.Put(item)
+		if err != nil {
+			t.Fatalf("Failed to put item %v with error %v", item, err)
+		}
+		keys = append(keys, key)
+	}
+
+	type testCase struct {
+		key  string
+		item customTestStruct
+		dest customTestStruct
+		err  error
+	}
+
+	var testCases []*testCase
+	for n, item := range testItems {
+		testCases = append(testCases, &testCase{
+			key:  keys[n],
+			item: *item,
+			dest: customTestStruct{},
+			err:  nil,
+		})
+	}
+
+	for _, tc := range testCases {
+		err := base.Get(tc.key, &tc.dest)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		if !reflect.DeepEqual(tc.item, tc.dest) {
+			t.Errorf("Items not equal.\nExpected:\n%v\nGot:\n%v", tc.item, tc.dest)
+		}
+	}
+}
+
+func TestPutMany(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "key",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt: 1,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+
+	testCases := []struct {
+		items []*customTestStruct
+		err   error
+	}{
+		{testItems, nil},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.PutMany(tc.items)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		for _, item := range tc.items {
+			var dest customTestStruct
+			err = base.Get(item.TestKey, &dest)
+			if err != nil {
+				t.Fatalf("Failed to get item with key %s", item.TestKey)
+			}
+			if !reflect.DeepEqual(*item, dest) {
+				t.Errorf("Item not equal.\nExpected:\n%v\nStored Items:\n%v", item, dest)
+			}
+		}
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	testCases := []struct {
+		item       *customTestStruct
+		updates    Updates
+		resultItem *customTestStruct
+		err        error
+	}{
+		{
+			item: &customTestStruct{
+				TestKey:   "a",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt:  1,
+					TestBool: true,
+					TestList: []string{"b"},
+				},
+			},
+			updates: Updates{
+				"test_value":                     "changed value",
+				"test_nested_struct.test_int":    base.Util.Increment(1),
+				"test_nested_struct.test_string": base.Util.Trim(),
+				"test_nested_struct.test_list":   base.Util.Append("c"),
+			},
+			resultItem: &customTestStruct{
+				TestKey:   "a",
+				TestValue: "changed value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt:  2,
+					TestBool: true,
+					TestList: []string{"b", "c"},
+				},
+			},
+			err: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		key, err := base.Put(tc.item)
+		if err != nil {
+			t.Fatalf("Failed to put test item with key %s", key)
+		}
+
+		err = base.Update(key, tc.updates)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+
+		var dest customTestStruct
+		err = base.Get(key, &dest)
+		if err != nil {
+			t.Fatalf("Failed to get test item with key %s", key)
+		}
+
+		if !reflect.DeepEqual(*tc.resultItem, dest) {
+			fmt.Println("destination item nested:", *dest.TestNested)
+			t.Errorf("Item not equal.\nExpected:\n%v\nStored Items:\n%v", *tc.resultItem, dest)
+		}
+	}
+}
+
+func TestInsert(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	testCases := []struct {
+		item customTestStruct
+		err  error
+	}{
+		{
+			item: customTestStruct{
+				TestKey:   "key",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt: 1,
+				},
+			},
+			err: nil,
+		},
+		{
+			item: customTestStruct{
+				TestKey:   "key",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt: 1,
+				},
+			},
+			err: ErrConflict,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.Insert(tc.item)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value for item %v\nExpected: %v Got: %v", tc.item, tc.err, err)
+		}
+		var storedItem customTestStruct
+		if tc.err == nil {
+			err = base.Get(tc.item.TestKey, &storedItem)
+			if err != nil {
+				t.Errorf("Failed to get item with key %s", tc.item.TestKey)
+			}
+			if !reflect.DeepEqual(storedItem, tc.item) {
+				t.Errorf("Items not equal.\nExpected:\n%v\nStored:\n%v", tc.item, storedItem)
+			}
+		}
+	}
+}
+
+func TestDelete(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "a",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt:  1,
+				TestList: []string{"a", "b"},
+				TestBool: true,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+
+	var keys []string
+	for _, item := range testItems {
+		key, err := base.Put(item)
+		if err != nil {
+			t.Fatalf("Failed to put item %v with error %v", item, err)
+		}
+		keys = append(keys, key)
+	}
+
+	type testCase struct {
+		key string
+		err error
+	}
+
+	var testCases []*testCase
+	for n := range testItems {
+		testCases = append(testCases, &testCase{
+			key: keys[n],
+			err: nil,
+		})
+	}
+
+	for n, tc := range testCases {
+		key := keys[n]
+		err := base.Delete(key)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		var dest customTestStruct
+		err = base.Get(key, &dest)
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("Item with key %s not deleted from database", key)
+		}
+	}
+}
+
+func TestFetch(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "a",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt:  1,
+				TestList: []string{"a", "b"},
+				TestBool: true,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+	_, err := base.PutMany(testItems)
+	if err != nil {
+		t.Fatalf("Failed to put items with error %v", err)
+	}
+
+	type testCase struct {
+		query         Query
+		expectedItems []customTestStruct
+		dest          []customTestStruct
+		err           error
+	}
+
+	testCases := []testCase{
+		{
+			query: Query{
+				{"test_nested_struct.test_int?lte": 1},
+			},
+			expectedItems: []customTestStruct{
+				customTestStruct{
+					TestKey:   "a",
+					TestValue: "value",
+					TestNested: &nestedCustomTestStruct{
+						TestInt:  1,
+						TestList: []string{"a", "b"},
+						TestBool: true,
+					},
+				},
+			},
+			dest: []customTestStruct{},
+			err:  nil,
+		},
+		{
+			query: Query{
+				{"test_value": "value"},
+			},
+			expectedItems: []customTestStruct{
+				customTestStruct{
+					TestKey:   "a",
+					TestValue: "value",
+					TestNested: &nestedCustomTestStruct{
+						TestInt:  1,
+						TestList: []string{"a", "b"},
+						TestBool: true,
+					},
+				},
+				customTestStruct{
+					TestKey:   "b",
+					TestValue: "value",
+				},
+			},
+			dest: []customTestStruct{},
+			err:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.Fetch(tc.query, &tc.dest, 0)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		if !reflect.DeepEqual(tc.expectedItems, tc.dest) {
+			t.Errorf("Items not equal.\nExpected:\n%v\nGot:\n%v", tc.expectedItems, tc.dest)
 		}
 	}
 }

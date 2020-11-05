@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"reflect"
 	"strings"
 )
 
@@ -14,6 +13,10 @@ var (
 	ErrBadProjectKey = errors.New("bad project key")
 	// ErrTooManyItems too many items
 	ErrTooManyItems = errors.New("too many items")
+	// ErrBadDestination bad destination
+	ErrBadDestination = errors.New("bad destination")
+	// ErrBadItem = errors.New("bad items")
+	ErrBadItem = errors.New("bad item")
 )
 
 // Base deta base
@@ -27,6 +30,9 @@ type Base struct {
 	// Util base utilities
 	Util *util
 }
+
+// Items always stored as a map of string to interface{}
+type baseItem map[string]interface{}
 
 // Query datatype
 type Query []map[string]interface{}
@@ -49,60 +55,73 @@ func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
 	return &Base{
 		client: newDetaClient(rootEndpoint, &authInfo{
 			authType:    "api-key",
-			headerKey:   "X-Deta-API-Key",
+			headerKey:   "X-API-Key",
 			headerValue: projectKey,
 		}),
 	}, nil
 }
 
-// checks if item is a struct or a map
-// if not adds the item as a 'value' field
-func (b *Base) modifyItem(item interface{}) interface{} {
-	// check item type
-	switch reflect.ValueOf(item).Kind() {
-	// if struct return item as is
-	case reflect.Struct:
-		return item
-	// if pointer check type of value ptr is pointing to
-	case reflect.Ptr:
-		switch reflect.Indirect(reflect.ValueOf(item)).Elem().Kind() {
-		case reflect.Struct:
-			return item
-		case reflect.Map:
-			return item
-		default:
-			return map[string]interface{}{
-				"value": item,
-			}
+func (b *Base) removeEmptyKey(bi baseItem) error {
+	key, ok := bi["key"]
+	if !ok {
+		return nil
+	}
+	switch key.(type) {
+	case string:
+		if key == "" {
+			delete(bi, "key")
 		}
-	// if map return as is
-	case reflect.Map:
-		return item
-	// other cases (ints, bools, strings etc)
-	// put the item under field value
+		return nil
 	default:
-		return map[string]interface{}{
-			"value": item,
-		}
+		return fmt.Errorf("%w: %v", ErrBadItem, "Key is not a string")
 	}
 }
 
-type baseItem map[string]interface{}
+func (b *Base) modifyItem(item interface{}) (baseItem, error) {
+	data, err := json.Marshal(item)
+	if err != nil {
+		return nil, ErrBadItem
+	}
+	var bi baseItem
+	err = json.Unmarshal(data, &bi)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+	}
+	err = b.removeEmptyKey(bi)
+	if err != nil {
+		return nil, err
+	}
+	return bi, nil
+}
+
+// modifies items to a []baseItem
+func (b *Base) modifyItems(items interface{}) ([]baseItem, error) {
+	data, err := json.Marshal(items)
+	if err != nil {
+		return nil, ErrBadItem
+	}
+	var bi []baseItem
+	err = json.Unmarshal(data, &bi)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+	}
+	for _, item := range bi {
+		err = b.removeEmptyKey(item)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return bi, nil
+}
 
 type putResponse struct {
 	Processed map[string][]baseItem `json:"processed"`
 	Failed    map[string][]baseItem `json:"failed"`
 }
 
-func (b *Base) put(items []interface{}) ([]string, error) {
-
-	var modifiedItems []interface{}
-	for _, item := range items {
-		modifiedItems = append(modifiedItems, b.modifyItem(item))
-	}
-
+func (b *Base) put(items []baseItem) ([]string, error) {
 	body := map[string]interface{}{
-		"items": modifiedItems,
+		"items": items,
 	}
 	o, err := b.client.request(&requestInput{
 		Path:   "/items",
@@ -137,7 +156,12 @@ func (b *Base) Put(item interface{}) (string, error) {
 	}
 
 	items := []interface{}{item}
-	putKeys, err := b.put(items)
+	modifiedItems, err := b.modifyItems(items)
+	if err != nil {
+		return "", err
+	}
+
+	putKeys, err := b.put(modifiedItems)
 	if err != nil {
 		return "", err
 	}
@@ -146,14 +170,19 @@ func (b *Base) Put(item interface{}) (string, error) {
 
 // PutMany operation for Deta Base
 // Puts at most 25 items at a time
-func (b *Base) PutMany(items []interface{}) ([]string, error) {
-	if len(items) == 0 {
+func (b *Base) PutMany(items interface{}) ([]string, error) {
+	modifiedItems, err := b.modifyItems(items)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(modifiedItems) == 0 {
 		return nil, nil
 	}
-	if len(items) > 25 {
+	if len(modifiedItems) > 25 {
 		return nil, ErrTooManyItems
 	}
-	return b.put(items)
+	return b.put(modifiedItems)
 }
 
 // Get gets an item with 'key' from the database
@@ -169,17 +198,30 @@ func (b *Base) Get(key string, dest interface{}) error {
 	}
 	err = json.Unmarshal(o.Body, &dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrBadDestination, err)
 	}
 	return nil
 }
 
+type insertRequest struct {
+	Item baseItem `json:"item"`
+}
+
 // Insert inserts an item in the database only if the key does not exist
 func (b *Base) Insert(item interface{}) (string, error) {
+	modifiedItem, err := b.modifyItem(item)
+	if err != nil {
+		return "", err
+	}
+
+	ir := &insertRequest{
+		Item: modifiedItem,
+	}
+
 	o, err := b.client.request(&requestInput{
 		Path:   "/items",
 		Method: "POST",
-		Body:   b.modifyItem(item),
+		Body:   ir,
 	})
 
 	if err != nil {
@@ -195,41 +237,46 @@ func (b *Base) Insert(item interface{}) (string, error) {
 }
 
 type updateRequest struct {
-	Set       map[string]interface{}   `json:"set"`
-	Trim      []string                 `json:"trim"`
-	Append    map[string][]interface{} `json:"append"`
-	Prepend   map[string][]interface{} `json:"prepend"`
-	Increment map[string]interface{}   `json:"increment"`
+	Set       map[string]interface{} `json:"set"`
+	Trim      []string               `json:"trim"`
+	Append    map[string]interface{} `json:"append"`
+	Prepend   map[string]interface{} `json:"prepend"`
+	Increment map[string]interface{} `json:"increment"`
 }
 
 // converts updates to an update request
 func (b *Base) updatesToUpdateRequest(updates Updates) *updateRequest {
-	var updateReq updateRequest
+	updateReq := &updateRequest{
+		Set:       make(map[string]interface{}),
+		Append:    make(map[string]interface{}),
+		Prepend:   make(map[string]interface{}),
+		Increment: make(map[string]interface{}),
+	}
 	for k, v := range updates {
 		switch v.(type) {
-		case trimUtil:
+		case *trimUtil:
 			updateReq.Trim = append(updateReq.Trim, k)
-		case appendUtil:
-			updateReq.Append[k] = v.(appendUtil).value
-		case prependUtil:
-			updateReq.Prepend[k] = v.(prependUtil).value
-		case incrementUtil:
-			updateReq.Increment[k] = v.(incrementUtil).value
+		case *appendUtil:
+			updateReq.Append[k] = v.(*appendUtil).value
+		case *prependUtil:
+			updateReq.Prepend[k] = v.(*prependUtil).value
+		case *incrementUtil:
+			updateReq.Increment[k] = v.(*incrementUtil).value
 		default:
 			updateReq.Set[k] = v
 		}
 	}
-	return &updateReq
+	return updateReq
 }
 
 // Update updates the item with the 'key' with the provide 'updates'
-func (b *Base) Update(updates Updates, key string) error {
+func (b *Base) Update(key string, updates Updates) error {
 	// escape key
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
 	_, err := b.client.request(&requestInput{
-		Path:   fmt.Sprintf("/%s", escapedKey),
+		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",
 		Body:   ur,
 	})
@@ -245,7 +292,7 @@ func (b *Base) Delete(key string) error {
 	escapedKey := url.PathEscape(key)
 
 	_, err := b.client.request(&requestInput{
-		Path:   fmt.Sprintf("/%s", escapedKey),
+		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "DELETE",
 	})
 	if err != nil {
@@ -262,7 +309,7 @@ type paging struct {
 type fetchRequest struct {
 	Query Query   `json:"query"`
 	Last  *string `json:"last,omitempty"`
-	Limit *int    `json:"limite,omitempty"`
+	Limit *int    `json:"limit,omitempty"`
 }
 
 type fetchResponse struct {
@@ -288,55 +335,35 @@ func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
 }
 
 // Fetch fetches maximum 'limit' items from the database based on the 'query'
-// Provide a 0 limit to fetch everything from the database
-// Fetch is paginated, can submit multiple requests
-// It scans the items onto 'dest'
+// Provide a 'limit' value of 0 or less to apply no limits
+// It scans the result onto 'dest'
 // A nil query fetches all items from the database
-func (b *Base) Fetch(query Query, limit int, dest interface{}) error {
+// Fetch is paginated, returns the last key fetched if further pages are left
+func (b *Base) Fetch(query Query, dest interface{}, limit int) (string, error) {
 	req := &fetchRequest{
 		Query: query,
 	}
-	if limit != 0 {
+	if limit > 0 {
 		req.Limit = &limit
 	}
 
-	firstIteration := true
-
 	res, err := b.fetch(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	var totalItems []baseItem
-	for res.Paging.Last != nil || firstIteration {
-		firstIteration = false
-
-		req.Last = res.Paging.Last
-		res, err := b.fetch(req)
-		if err != nil {
-			return err
-		}
-
-		data, err := json.Marshal(res.Items)
-		if err != nil {
-			return err
-		}
-
-		var items []baseItem
-		err = json.Unmarshal(data, &items)
-		if err != nil {
-			return err
-		}
-		totalItems = append(totalItems, items...)
-	}
-
-	if len(totalItems) > limit {
-		totalItems = totalItems[:limit]
-	}
-
-	data, err := json.Marshal(totalItems)
+	data, err := json.Marshal(res.Items)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return json.Unmarshal(data, &dest)
+	err = json.Unmarshal(data, &dest)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrBadDestination, err)
+	}
+
+	lastKey := ""
+	if res.Paging.Last != nil {
+		lastKey = *res.Paging.Last
+	}
+	return lastKey, nil
 }

@@ -167,14 +167,13 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 	}
 
 	// errors
-	er := &errorResp{
-		StatusCode: res.StatusCode,
-	}
+	var er errorResp
 	// json unmarshal json error responses
 	if res.Header.Get("Content-Type") == "application/json" {
-		if err = json.Unmarshal(b, er); err != nil {
+		if err = json.Unmarshal(b, &er); err != nil {
 			return nil, err
 		}
 	}
-	return nil, c.errorRespToErr(er)
+	er.StatusCode = res.StatusCode
+	return nil, c.errorRespToErr(&er)
 }

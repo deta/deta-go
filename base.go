@@ -232,7 +232,7 @@ func (b *Base) Insert(item interface{}) (string, error) {
 
 type updateRequest struct {
 	Set       map[string]interface{} `json:"set"`
-	Trim      []string               `json:"trim"`
+	Trim      []string               `json:"delete"`
 	Append    map[string]interface{} `json:"append"`
 	Prepend   map[string]interface{} `json:"prepend"`
 	Increment map[string]interface{} `json:"increment"`
@@ -245,6 +245,7 @@ func (b *Base) updatesToUpdateRequest(updates Updates) *updateRequest {
 		Append:    make(map[string]interface{}),
 		Prepend:   make(map[string]interface{}),
 		Increment: make(map[string]interface{}),
+		Trim:      make([]string, 0),
 	}
 	for k, v := range updates {
 		switch v.(type) {

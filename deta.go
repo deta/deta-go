@@ -13,9 +13,9 @@ const (
 
 var (
 	// ErrBadProjectKey bad project key
-	ErrBadProjectKey = errors.New("bad project key")
+	ErrBadProjectKey = errors.New("Bad project key")
 	// ErrBadBaseName bad base name
-	ErrBadBaseName = errors.New("bad base name")
+	ErrBadBaseName = errors.New("Bad base name")
 )
 
 // Deta xx

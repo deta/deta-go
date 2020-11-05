@@ -10,11 +10,11 @@ import (
 
 var (
 	// ErrTooManyItems too many items
-	ErrTooManyItems = errors.New("too many items")
+	ErrTooManyItems = errors.New("Too many items")
 	// ErrBadDestination bad destination
-	ErrBadDestination = errors.New("bad destination")
+	ErrBadDestination = errors.New("Bad destination")
 	// ErrBadItem = errors.New("bad items")
-	ErrBadItem = errors.New("bad item")
+	ErrBadItem = errors.New("Bad item")
 )
 
 // Base deta base

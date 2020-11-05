@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -57,7 +58,7 @@ func newDetaClient(rootEndpoint string, ai *authInfo) *detaClient {
 // error response
 type errorResp struct {
 	StatusCode int      `json:"-"`
-	Errors     []string `json:"errors,omitempty"`
+	Errors     []string `json:"errors"`
 }
 
 // returns appropriate errors from the error response
@@ -169,7 +170,7 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 	// errors
 	var er errorResp
 	// json unmarshal json error responses
-	if res.Header.Get("Content-Type") == "application/json" {
+	if strings.Contains(res.Header.Get("Content-Type"), "application/json") {
 		if err = json.Unmarshal(b, &er); err != nil {
 			return nil, err
 		}

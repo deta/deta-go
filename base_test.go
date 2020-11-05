@@ -545,7 +545,7 @@ func TestFetchPaginated(t *testing.T) {
 		Limit: 1,
 	})
 	if err != nil {
-		t.Errorf("Failed to fetch items with err %v", err)
+		t.Fatalf("Failed to fetch items with err %v", err)
 	}
 
 	key := testItems[0].TestKey

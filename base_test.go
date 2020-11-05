@@ -21,15 +21,11 @@ type customTestStruct struct {
 	TestNested *nestedCustomTestStruct `json:"test_nested_struct"`
 }
 
-func Setup(t *testing.T) *Base {
+func Setup() *Base {
 	projectKey := os.Getenv("TEST_PROJECT_KEY")
 	baseName := os.Getenv("TEST_BASE_NAME")
 	rootEndpoint := os.Getenv("TEST_ENDPOINT")
-	base, err := newBase(projectKey, baseName, rootEndpoint)
-	if err != nil {
-		t.Fatalf("Failed to set up test base: %v", err)
-	}
-	return base
+	return newBase(projectKey, baseName, rootEndpoint)
 }
 
 func TearDown(b *Base, t *testing.T) {
@@ -48,7 +44,7 @@ func TearDown(b *Base, t *testing.T) {
 }
 
 func TestModifyItem(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	testStructCases := []struct {
@@ -126,7 +122,7 @@ func TestModifyItem(t *testing.T) {
 }
 
 func TestPut(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	testCases := []struct {
@@ -162,7 +158,7 @@ func TestPut(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	// put items
@@ -220,7 +216,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestPutMany(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	testItems := []*customTestStruct{
@@ -263,7 +259,7 @@ func TestPutMany(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	testCases := []struct {
@@ -326,7 +322,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	testCases := []struct {
@@ -374,7 +370,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	// put items
@@ -431,7 +427,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
-	base := Setup(t)
+	base := Setup()
 	defer TearDown(base, t)
 
 	// put items

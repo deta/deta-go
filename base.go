@@ -328,17 +328,33 @@ func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
 	return &fr, nil
 }
 
+// FetchInput input to Fetch operation
+type FetchInput struct {
+	// Q the query a list of filters to apply to items
+	// A nil value applies no queries and fetches all items
+	Q Query
+	// Dest the destination to store the results
+	// Should be a pointer to a slice otherwise result will be empty
+	Dest interface{}
+	// Limit the maximum number of items to fetch
+	// Value of 0 or less applies no limit
+	Limit int
+	// LastKey the last key evaluated in a paginated response
+	// Leave empty if not a subsequent fetch request
+	LastKey string
+}
+
 // Fetch fetches maximum 'limit' items from the database based on the 'query'
 // Provide a 'limit' value of 0 or less to apply no limits
 // It scans the result onto 'dest'
 // A nil query fetches all items from the database
 // Fetch is paginated, returns the last key fetched if further pages are left
-func (b *Base) Fetch(query Query, dest interface{}, limit int) (string, error) {
+func (b *Base) Fetch(i *FetchInput) (string, error) {
 	req := &fetchRequest{
-		Query: query,
+		Query: i.Q,
 	}
-	if limit > 0 {
-		req.Limit = &limit
+	if i.Limit > 0 {
+		req.Limit = &i.Limit
 	}
 
 	res, err := b.fetch(req)
@@ -350,7 +366,7 @@ func (b *Base) Fetch(query Query, dest interface{}, limit int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = json.Unmarshal(data, &dest)
+	err = json.Unmarshal(data, &i.Dest)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrBadDestination, err)
 	}

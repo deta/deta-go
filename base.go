@@ -270,11 +270,6 @@ func (b *Base) Update(key string, updates Updates) error {
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
-	fmt.Println("set:", ur.Set)
-	fmt.Println("append:", ur.Append)
-	fmt.Println("prepend:", ur.Prepend)
-	fmt.Println("increment:", ur.Increment)
-	fmt.Println("trim:", ur.Trim)
 	_, err := b.client.request(&requestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",

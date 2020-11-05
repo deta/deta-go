@@ -309,7 +309,7 @@ type paging struct {
 type fetchRequest struct {
 	Query Query   `json:"query"`
 	Last  *string `json:"last,omitempty"`
-	Limit *int    `json:"limite,omitempty"`
+	Limit *int    `json:"limit,omitempty"`
 }
 
 type fetchResponse struct {

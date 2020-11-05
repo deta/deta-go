@@ -372,3 +372,146 @@ func TestInsert(t *testing.T) {
 		}
 	}
 }
+
+func TestDelete(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "a",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt:  1,
+				TestList: []string{"a", "b"},
+				TestBool: true,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+
+	var keys []string
+	for _, item := range testItems {
+		key, err := base.Put(item)
+		if err != nil {
+			t.Fatalf("Failed to put item %v with error %v", item, err)
+		}
+		keys = append(keys, key)
+	}
+
+	type testCase struct {
+		key string
+		err error
+	}
+
+	var testCases []*testCase
+	for n := range testItems {
+		testCases = append(testCases, &testCase{
+			key: keys[n],
+			err: nil,
+		})
+	}
+
+	for n, tc := range testCases {
+		key := keys[n]
+		err := base.Delete(key)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		var dest customTestStruct
+		err = base.Get(key, &dest)
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("Item with key %s not deleted from database", key)
+		}
+	}
+}
+
+func TestFetch(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []*customTestStruct{
+		&customTestStruct{
+			TestKey:   "a",
+			TestValue: "value",
+			TestNested: &nestedCustomTestStruct{
+				TestInt:  1,
+				TestList: []string{"a", "b"},
+				TestBool: true,
+			},
+		},
+		&customTestStruct{
+			TestKey:   "b",
+			TestValue: "value",
+		},
+	}
+	_, err := base.PutMany(testItems)
+	if err != nil {
+		t.Fatalf("Failed to put items with error %v", err)
+	}
+
+	type testCase struct {
+		query         Query
+		expectedItems []customTestStruct
+		dest          []customTestStruct
+		err           error
+	}
+
+	testCases := []testCase{
+		{
+			query: Query{
+				{"test_nested_struct.test_int?lte": 1},
+			},
+			expectedItems: []customTestStruct{
+				customTestStruct{
+					TestKey:   "a",
+					TestValue: "value",
+					TestNested: &nestedCustomTestStruct{
+						TestInt:  1,
+						TestList: []string{"a", "b"},
+						TestBool: true,
+					},
+				},
+			},
+			dest: []customTestStruct{},
+			err:  nil,
+		},
+		{
+			query: Query{
+				{"test_value": "value"},
+			},
+			expectedItems: []customTestStruct{
+				customTestStruct{
+					TestKey:   "a",
+					TestValue: "value",
+					TestNested: &nestedCustomTestStruct{
+						TestInt:  1,
+						TestList: []string{"a", "b"},
+						TestBool: true,
+					},
+				},
+				customTestStruct{
+					TestKey:   "b",
+					TestValue: "value",
+				},
+			},
+			dest: []customTestStruct{},
+			err:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.Fetch(tc.query, &tc.dest, 0)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
+		}
+		if !reflect.DeepEqual(tc.expectedItems, tc.dest) {
+			t.Errorf("Items not equal.\nExpected:\n%v\nGot:\n%v", tc.expectedItems, tc.dest)
+		}
+	}
+}

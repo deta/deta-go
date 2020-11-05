@@ -30,7 +30,10 @@ func Setup() *Base {
 
 func TearDown(b *Base, t *testing.T) {
 	var items []map[string]interface{}
-	_, err := b.Fetch(nil, &items, 0)
+	_, err := b.Fetch(&FetchInput{
+		Q:    nil,
+		Dest: &items,
+	})
 	if err != nil {
 		t.Log("Failed to fetch items in teardown, further tests might fail")
 	}
@@ -502,12 +505,71 @@ func TestFetch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		_, err := base.Fetch(tc.query, &tc.dest, 0)
+		_, err := base.Fetch(&FetchInput{
+			Q:    tc.query,
+			Dest: &tc.dest,
+		})
 		if !errors.Is(err, tc.err) {
 			t.Errorf("Unexpected error value. Expected: %v Got %v", tc.err, err)
 		}
 		if !reflect.DeepEqual(tc.expectedItems, tc.dest) {
 			t.Errorf("Items not equal.\nExpected:\n%v\nGot:\n%v", tc.expectedItems, tc.dest)
 		}
+	}
+}
+
+func TestFetchPaginated(t *testing.T) {
+	base := Setup()
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []customTestStruct{
+		customTestStruct{
+			TestKey:   "a",
+			TestValue: "a",
+		},
+		customTestStruct{
+			TestKey:   "b",
+			TestValue: "b",
+		},
+	}
+	_, err := base.PutMany(testItems)
+	if err != nil {
+		t.Fatalf("Failed to put items with error %v", err)
+	}
+
+	var dest []customTestStruct
+	lastKey, err := base.Fetch(&FetchInput{
+		Q:     nil,
+		Dest:  &dest,
+		Limit: 1,
+	})
+	if err != nil {
+		t.Errorf("Failed to fetch items with err %v", err)
+	}
+
+	key := testItems[0].TestKey
+	if lastKey != key {
+		t.Errorf("Failed to get correct last key. Expected: %s Got: %s", key, lastKey)
+	}
+
+	if !reflect.DeepEqual(testItems[0], dest[0]) {
+		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", testItems[0], dest[0])
+	}
+
+	lastKey, err = base.Fetch(&FetchInput{
+		Q:       nil,
+		Dest:    &dest,
+		LastKey: lastKey,
+	})
+	if err != nil {
+		t.Errorf("Failed to fetch items with err %v", err)
+	}
+
+	if lastKey != "" {
+		t.Errorf("Failed to get correct last key. Expected: %s Got: %s", key, lastKey)
+	}
+	if !reflect.DeepEqual(testItems[0], dest[0]) {
+		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", testItems[0], dest[0])
 	}
 }

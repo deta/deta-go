@@ -568,7 +568,7 @@ func TestFetchPaginated(t *testing.T) {
 	if lastKey != "" {
 		t.Errorf("Failed to get correct last key. Expected: %s Got: %s", key, lastKey)
 	}
-	if !reflect.DeepEqual(testItems[0], dest[0]) {
-		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", testItems[0], dest[0])
+	if !reflect.DeepEqual(testItems[1], dest[0]) {
+		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", testItems[1], dest[0])
 	}
 }

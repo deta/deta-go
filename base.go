@@ -358,6 +358,10 @@ func (b *Base) Fetch(i *FetchInput) (string, error) {
 		req.Limit = &i.Limit
 	}
 
+	if i.LastKey != "" {
+		req.Last = &i.LastKey
+	}
+
 	res, err := b.fetch(req)
 	if err != nil {
 		return "", err

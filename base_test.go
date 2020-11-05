@@ -2,7 +2,6 @@ package deta
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -276,9 +275,10 @@ func TestUpdate(t *testing.T) {
 				TestKey:   "a",
 				TestValue: "value",
 				TestNested: &nestedCustomTestStruct{
-					TestInt:  1,
-					TestBool: true,
-					TestList: []string{"b"},
+					TestInt:    1,
+					TestBool:   true,
+					TestList:   []string{"b"},
+					TestString: "little",
 				},
 			},
 			updates: Updates{
@@ -318,7 +318,6 @@ func TestUpdate(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(*tc.resultItem, dest) {
-			fmt.Println("destination item nested:", *dest.TestNested)
 			t.Errorf("Item not equal.\nExpected:\n%v\nStored Items:\n%v", *tc.resultItem, dest)
 		}
 	}

@@ -232,7 +232,7 @@ func (b *Base) Insert(item interface{}) (string, error) {
 
 type updateRequest struct {
 	Set       map[string]interface{} `json:"set"`
-	Trim      []string               `json:"trim"`
+	Trim      []string               `json:"delete"`
 	Append    map[string]interface{} `json:"append"`
 	Prepend   map[string]interface{} `json:"prepend"`
 	Increment map[string]interface{} `json:"increment"`
@@ -245,6 +245,7 @@ func (b *Base) updatesToUpdateRequest(updates Updates) *updateRequest {
 		Append:    make(map[string]interface{}),
 		Prepend:   make(map[string]interface{}),
 		Increment: make(map[string]interface{}),
+		Trim:      make([]string, 0),
 	}
 	for k, v := range updates {
 		switch v.(type) {
@@ -269,6 +270,11 @@ func (b *Base) Update(key string, updates Updates) error {
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
+	fmt.Println("set:", ur.Set)
+	fmt.Println("append:", ur.Append)
+	fmt.Println("prepend:", ur.Prepend)
+	fmt.Println("increment:", ur.Increment)
+	fmt.Println("trim:", ur.Trim)
 	_, err := b.client.request(&requestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",

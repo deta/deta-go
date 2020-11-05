@@ -25,9 +25,20 @@ type util struct{}
 // Append utility
 func (u *util) Append(value interface{}) *appendUtil {
 	switch reflect.ValueOf(value).Kind() {
-	case reflect.Array:
+	case reflect.Array, reflect.Slice:
 		return &appendUtil{
 			value: value,
+		}
+	case reflect.Ptr:
+		switch reflect.Indirect(reflect.ValueOf(value)).Kind() {
+		case reflect.Array, reflect.Slice:
+			return &appendUtil{
+				value: value,
+			}
+		default:
+			return &appendUtil{
+				value: []interface{}{value},
+			}
 		}
 	default:
 		return &appendUtil{
@@ -39,9 +50,20 @@ func (u *util) Append(value interface{}) *appendUtil {
 // Prepend utility
 func (u *util) Prepend(value interface{}) *prependUtil {
 	switch reflect.ValueOf(value).Kind() {
-	case reflect.Array:
+	case reflect.Array, reflect.Slice:
 		return &prependUtil{
 			value: value,
+		}
+	case reflect.Ptr:
+		switch reflect.Indirect(reflect.ValueOf(value)).Kind() {
+		case reflect.Array, reflect.Slice:
+			return &prependUtil{
+				value: value,
+			}
+		default:
+			return &prependUtil{
+				value: []interface{}{value},
+			}
 		}
 	default:
 		return &prependUtil{

@@ -9,8 +9,6 @@ import (
 )
 
 var (
-	// ErrBadProjectKey bad project key
-	ErrBadProjectKey = errors.New("bad project key")
 	// ErrTooManyItems too many items
 	ErrTooManyItems = errors.New("too many items")
 	// ErrBadDestination bad destination
@@ -41,12 +39,8 @@ type Query []map[string]interface{}
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base
-func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
-	// verify project id
+func newBase(projectKey, baseName, rootEndpoint string) *Base {
 	parts := strings.Split(projectKey, "_")
-	if len(parts) != 2 {
-		return nil, ErrBadProjectKey
-	}
 	projectID := parts[0]
 
 	// root endpoint for the base
@@ -58,7 +52,7 @@ func newBase(projectKey, baseName, rootEndpoint string) (*Base, error) {
 			headerKey:   "X-API-Key",
 			headerValue: projectKey,
 		}),
-	}, nil
+	}
 }
 
 func (b *Base) removeEmptyKey(bi baseItem) error {

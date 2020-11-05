@@ -324,3 +324,51 @@ func TestUpdate(t *testing.T) {
 		}
 	}
 }
+
+func TestInsert(t *testing.T) {
+	base := Setup(t)
+	defer TearDown(base, t)
+
+	testCases := []struct {
+		item customTestStruct
+		err  error
+	}{
+		{
+			item: customTestStruct{
+				TestKey:   "key",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt: 1,
+				},
+			},
+			err: nil,
+		},
+		{
+			item: customTestStruct{
+				TestKey:   "key",
+				TestValue: "value",
+				TestNested: &nestedCustomTestStruct{
+					TestInt: 1,
+				},
+			},
+			err: ErrConflict,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := base.Insert(tc.item)
+		if !errors.Is(err, tc.err) {
+			t.Errorf("Unexpected error value for item %v\nExpected: %v Got: %v", tc.item, tc.err, err)
+		}
+		var storedItem customTestStruct
+		if tc.err == nil {
+			err = base.Get(tc.item.TestKey, &storedItem)
+			if err != nil {
+				t.Errorf("Failed to get item with key %s", tc.item.TestKey)
+			}
+			if !reflect.DeepEqual(storedItem, tc.item) {
+				t.Errorf("Items not equal.\nExpected:\n%v\nStored:\n%v", tc.item, storedItem)
+			}
+		}
+	}
+}

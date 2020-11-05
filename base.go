@@ -203,6 +203,10 @@ func (b *Base) Get(key string, dest interface{}) error {
 	return nil
 }
 
+type insertRequest struct {
+	Item baseItem `json:"item"`
+}
+
 // Insert inserts an item in the database only if the key does not exist
 func (b *Base) Insert(item interface{}) (string, error) {
 	modifiedItem, err := b.modifyItem(item)
@@ -210,10 +214,14 @@ func (b *Base) Insert(item interface{}) (string, error) {
 		return "", err
 	}
 
+	ir := &insertRequest{
+		Item: modifiedItem,
+	}
+
 	o, err := b.client.request(&requestInput{
 		Path:   "/items",
 		Method: "POST",
-		Body:   modifiedItem,
+		Body:   ir,
 	})
 
 	if err != nil {

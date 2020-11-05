@@ -285,7 +285,7 @@ func TestUpdate(t *testing.T) {
 				"test_value":                     "changed value",
 				"test_nested_struct.test_int":    base.Util.Increment(1),
 				"test_nested_struct.test_string": base.Util.Trim(),
-				"test_nested_struct.test_list":   base.Util.Append("c"),
+				"test_nested_struct.test_list":   base.Util.Prepend("c"),
 			},
 			resultItem: &customTestStruct{
 				TestKey:   "a",
@@ -293,7 +293,7 @@ func TestUpdate(t *testing.T) {
 				TestNested: &nestedCustomTestStruct{
 					TestInt:  2,
 					TestBool: true,
-					TestList: []string{"b", "c"},
+					TestList: []string{"c", "b"},
 				},
 			},
 			err: nil,

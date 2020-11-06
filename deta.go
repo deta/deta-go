@@ -1,3 +1,48 @@
+/*
+Package deta is the official Deta SDK for Go
+
+Example:
+	package main
+
+	import (
+		"deta"
+		"fmt"
+	)
+
+	type User struct {
+		Key string `json:"key"`
+		Username string `json:"username"`
+		Email string `json:"email"`
+	}
+
+	func main(){
+		d, err := deta.New("project_key")
+		if err != nil{
+			fmt.Println("failed to init a new Deta instance:", err)
+			return
+		}
+
+		db, err := deta.NewBase("base_name")
+		if err != nil{
+			fmt.Println("failed to init a new Base instance:", err)
+			return
+		}
+
+		u := &User{
+			Key: "abasd",
+			Username: "jimmy",
+			Email: "jimmy@deta.sh"
+		}
+		key, err := db.Put(u)
+		if err != nil {
+			fmt.Println("failed to put item:", err)
+			return
+		}
+		fmt.Println("successfully put item with key", key)
+	}
+
+More examples on https://docs.deta.sh/docs/base/sdk
+*/
 package deta
 
 import (
@@ -13,18 +58,18 @@ const (
 
 var (
 	// ErrBadProjectKey bad project key
-	ErrBadProjectKey = errors.New("Bad project key")
+	ErrBadProjectKey = errors.New("bad project key")
 	// ErrBadBaseName bad base name
-	ErrBadBaseName = errors.New("Bad base name")
+	ErrBadBaseName = errors.New("bad base name")
 )
 
-// Deta xx
+// Deta is a top-level deta service instance
 type Deta struct {
 	projectKey string
 }
 
-// NewDeta returns a pointer to a new `Deta` instance
-func NewDeta(projectKey string) (*Deta, error) {
+// New returns a pointer to a new Deta instance
+func New(projectKey string) (*Deta, error) {
 	if projectKey == "" {
 		projectKey = os.Getenv("DETA_PROJECT_KEY")
 	}
@@ -37,7 +82,7 @@ func NewDeta(projectKey string) (*Deta, error) {
 	}, nil
 }
 
-// NewBase returns a pointer to a new 'Base' instance
+// NewBase returns a pointer to a new Base instance
 func (d *Deta) NewBase(baseName string) (*Base, error) {
 	if baseName == "" {
 		return nil, fmt.Errorf("%w: base name is empty", ErrBadBaseName)

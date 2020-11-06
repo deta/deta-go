@@ -41,6 +41,7 @@ Example:
 		fmt.Println("successfully put item with key", key)
 	}
 
+More examples on https://docs.deta.sh/docs/base/sdk
 */
 package deta
 

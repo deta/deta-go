@@ -42,7 +42,7 @@ type baseItem map[string]interface{}
 // The example above fetches items where 'active' is true OR 'age' is less than 32.
 type Query []map[string]interface{}
 
-// Updates is a datatype to provide updates to an Update operation.
+// Updates is a datatype to provide updates to an item in an Update operation
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base

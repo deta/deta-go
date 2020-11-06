@@ -5,8 +5,8 @@ Example:
 	package main
 
 	import (
-		"deta"
 		"fmt"
+		"github.com/deta/deta-go"
 	)
 
 	type User struct {
@@ -22,7 +22,7 @@ Example:
 			return
 		}
 
-		db, err := deta.NewBase("base_name")
+		db, err := d.NewBase("base_name")
 		if err != nil{
 			fmt.Println("failed to init a new Base instance:", err)
 			return
@@ -31,7 +31,7 @@ Example:
 		u := &User{
 			Key: "abasd",
 			Username: "jimmy",
-			Email: "jimmy@deta.sh"
+			Email: "jimmy@deta.sh",
 		}
 		key, err := db.Put(u)
 		if err != nil {

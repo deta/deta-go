@@ -35,12 +35,12 @@ go get github.com/aws/deta-go@latest
 package main
 
 import (
-	"deta"
 	"fmt"
+	"github.com/deta/deta-go"
 )
 
 type User struct {
-	Key string `json:"key"`
+	Key string `json:"key"` // json struct tag key to denote the key
 	Username string `json:"username"`
 	Email string `json:"email"`
 }
@@ -52,7 +52,7 @@ func main(){
 		return
 	}
 
-	db, err := deta.NewBase("base_name")
+	db, err := d.NewBase("base_name")
 	if err != nil{
 		fmt.Println("failed to init a new Base instance:", err)
 		return
@@ -61,7 +61,7 @@ func main(){
 	u := &User{
 		Key: "abasd",
 		Username: "jimmy",
-		Email: "jimmy@deta.sh"
+		Email: "jimmy@deta.sh",
 	}
 	key, err := db.Put(u)
 	if err != nil {

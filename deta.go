@@ -5,8 +5,8 @@ Example:
 	package main
 
 	import (
-		"deta"
 		"fmt"
+		"github.com/deta/deta-go"
 	)
 
 	type User struct {
@@ -31,7 +31,7 @@ Example:
 		u := &User{
 			Key: "abasd",
 			Username: "jimmy",
-			Email: "jimmy@deta.sh"
+			Email: "jimmy@deta.sh",
 		}
 		key, err := db.Put(u)
 		if err != nil {

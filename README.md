@@ -1,6 +1,6 @@
 # DETA SDK for Go
 
-[![Go Doc](https://img.shields.io/badge/go-doc/blue)](https://godoc.org/github.com/deta/deta-go)
+[![Go Doc](https://img.shields.io/badge/go-doc-blue)](https://godoc.org/github.com/deta/deta-go)
 
 deta-go is the official Deta SDK for Go. 
 

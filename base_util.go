@@ -22,7 +22,9 @@ type trimUtil struct{}
 // utility struct
 type util struct{}
 
-// Append utility
+// Append utility, can be used in Updates to append items to a list
+//
+// value can be single or a list of items
 func (u *util) Append(value interface{}) *appendUtil {
 	switch reflect.ValueOf(value).Kind() {
 	case reflect.Array, reflect.Slice:
@@ -47,7 +49,9 @@ func (u *util) Append(value interface{}) *appendUtil {
 	}
 }
 
-// Prepend utility
+// Prepend utility, can be used in Updates to prepend items to a list
+//
+// value can be single or a list of items
 func (u *util) Prepend(value interface{}) *prependUtil {
 	switch reflect.ValueOf(value).Kind() {
 	case reflect.Array, reflect.Slice:
@@ -72,14 +76,16 @@ func (u *util) Prepend(value interface{}) *prependUtil {
 	}
 }
 
-// Increment utility
+// Increment utility, can be used in Updates to increment/decrement a numerical value
+//
+// if value is negative, the value is subtracted in the update operation
 func (u *util) Increment(value interface{}) *incrementUtil {
 	return &incrementUtil{
 		value: value,
 	}
 }
 
-// Trim utility
+// Trim utility, can be used in Updates to trim a field from an item
 func (u *util) Trim() *trimUtil {
 	return &trimUtil{}
 }

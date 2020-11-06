@@ -11,19 +11,19 @@ import (
 )
 
 var (
+	// ErrBadRequest bad request
+	ErrBadRequest = errors.New("bad request")
+	// ErrUnauthorized aunauthorized
+	ErrUnauthorized = errors.New("unauthorized")
+	// ErrNotFound not found
+	ErrNotFound = errors.New("not found")
+	// ErrConflict conflict
+	ErrConflict = errors.New("conflict")
+	// ErrInternalServerError internal server error
+	ErrInternalServerError = errors.New("internal server error")
 	// internal error
 	// invalid auth type
-	errInvalidAuthType = errors.New("Invalid auth type")
-	// ErrBadRequest bad request
-	ErrBadRequest = errors.New("Bad Request")
-	// ErrUnauthorized aunauthorized
-	ErrUnauthorized = errors.New("Unauthorized")
-	// ErrNotFound not found
-	ErrNotFound = errors.New("Not Found")
-	// ErrConflict status conflict
-	ErrConflict = errors.New("Conflict")
-	// ErrInternalServerError inernal server error
-	ErrInternalServerError = errors.New("Internal Server Error")
+	errInvalidAuthType = errors.New("invalid auth type")
 )
 
 // auth info for requests

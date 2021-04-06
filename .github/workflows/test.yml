@@ -28,8 +28,8 @@ jobs:
       #  with:
       #    test-results: test.json
       # Create a new release
-      - name: Semantic version bump per branch and tag
-        uses: Instrument/github-tag-action@v1.0.0
+      - name: Semantic version bump
+        uses: rimonhanna/gh-action-bump-version@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: master

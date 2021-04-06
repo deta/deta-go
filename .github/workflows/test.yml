@@ -16,20 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       # Test the code
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v2.5.2
-      - name: Test code
-        run: go test -json ./... > test.json
-      - name: Print results
-        run: cat test.json
-      - name: Annotate tests
-        if: always()
-        uses: guyarb/golang-test-annoations@v0.3.0
-        with:
-          test-results: test.json
-      # Get the code into the container
-      - name: Checkout
-        uses: actions/checkout@v2
+      #- name: Run golangci-lint
+      #  uses: golangci/golangci-lint-action@v2.5.2
+      #- name: Test code
+      #  run: go test -json ./... > test.json
+      #- name: Print results
+      #  run: cat test.json
+      #- name: Annotate tests
+      #  if: always()
+      #  uses: guyarb/golang-test-annoations@v0.3.0
+      #  with:
+      #    test-results: test.json
       # Create a new release
       - name: Semantic version bump per branch and tag
         uses: Instrument/github-tag-action@v1.0.0

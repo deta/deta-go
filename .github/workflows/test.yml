@@ -27,7 +27,6 @@ jobs:
         uses: guyarb/golang-test-annoations@v0.3.0
         with:
           test-results: test.json
-          package-name: github.com/deta/deta-go
       # Get the code into the container
       - name: Checkout
         uses: actions/checkout@v2

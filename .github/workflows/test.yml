@@ -16,46 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       # Test the code
-      #- name: Run golangci-lint
-      #  uses: golangci/golangci-lint-action@v2.5.2
-      #- name: Test code
-      #  run: go test -json ./... > test.json
-      #- name: Print results
-      #  run: cat test.json
-      #- name: Annotate tests
-      #  if: always()
-      #  uses: guyarb/golang-test-annoations@v0.3.0
-      #  with:
-      #    test-results: test.json
-      # Create a new release
-      - name: Semantic version bump
-        uses: rimonhanna/gh-action-bump-version@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: master
-      - name: Create tag for release
-        uses: Klemensas/action-autotag@stable
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v2.5.2
+      - name: Test code
+        run: go test -json ./... > test.json
+      - name: Print results
+        run: cat test.json
+      - name: Annotate tests
+        if: always()
+        uses: guyarb/golang-test-annoations@v0.3.0
         with:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          tag_prefix: "v"
-      - name: GH Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            base_test.go
-            base_util.go
-            base.go
-            client.go
-            deta.go
-            go.mod
-            LICENSE
-            README.md
-          fail_on_unmatched_files: true
-          prerelease: false
-          name: Latest
-          tag_name: latest
-          draft: false
-          body: This is the latest version of the application! It's a 32bit ELF binary so don't expect it to run on Windows!
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: deta/deta-go
+          test-results: test.json
+      

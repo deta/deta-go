@@ -1,6 +1,5 @@
 name: Lint on pull request
 on:
-  workflow_dispatch:
   pull_request:
     branches:
       - master
@@ -20,13 +19,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       # Lint code
-      #- name: Run golangci-lint
-      #  uses: golangci/golangci-lint-action@v2.5.2
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v2.5.2
       # Test the code
       - name: Test code
         run: go test -json ./... > test.json
-      - name: Print results
-        run: cat test.json
       # Display linting info
       - name: Annotate tests
         if: always()

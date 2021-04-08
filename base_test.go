@@ -21,9 +21,9 @@ type customTestStruct struct {
 }
 
 func Setup() *Base {
-	projectKey := os.Getenv("TEST_PROJECT_KEY")
-	baseName := os.Getenv("TEST_BASE_NAME")
-	rootEndpoint := os.Getenv("TEST_ENDPOINT")
+	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
+	baseName := os.Getenv("DETA_SDK_TEST_BASE_NAME")
+	rootEndpoint := os.Getenv("DETA_SDK_TEST_ENDPOINT")
 	return newBase(projectKey, baseName, rootEndpoint)
 }
 

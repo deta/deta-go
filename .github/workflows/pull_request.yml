@@ -1,4 +1,4 @@
-name: Lint on pull request
+name: Lint and test on pull request
 on:
   pull_request:
     branches:

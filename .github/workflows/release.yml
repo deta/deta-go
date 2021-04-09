@@ -34,16 +34,6 @@ jobs:
       - name: GH Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            base_test.go
-            base_util.go
-            base.go
-            client.go
-            deta.go
-            go.mod
-            LICENSE
-            README.md
-          fail_on_unmatched_files: true
           prerelease: false
           name: "Deta Go ${{fromJson(steps.set_var.outputs.packageJson).version}}"
           tag_name: ${{fromJson(steps.set_var.outputs.packageJson).version}}

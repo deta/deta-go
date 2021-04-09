@@ -26,7 +26,7 @@ jobs:
       # Read version from package.json and store in var
       - id: set_var
         run: |
-          content=`cat ./path/to/package.json`
+          content=`cat package.json`
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
           content="${content//$'\r'/'%0D'}"

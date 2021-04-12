@@ -1,0 +1,43 @@
+name: Build and release SDK 
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-18.04
+    steps:
+      # Get the code into the container
+      - name: Checkout
+        uses: actions/checkout@v2
+      # Create a new release
+      - name: Semantic version bump
+        uses: rimonhanna/gh-action-bump-version@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: master
+      - name: Create tag for release
+        uses: Klemensas/action-autotag@stable
+        with:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          tag_prefix: "v"
+      # Read version from package.json and store in var
+      - id: set_var
+        run: |
+          content=`cat package.json`
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          echo "::set-output name=packageJson::$content"
+      - name: GH Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: false
+          name: "Deta Go ${{fromJson(steps.set_var.outputs.packageJson).version}}"
+          tag_name: ${{fromJson(steps.set_var.outputs.packageJson).version}}
+          draft: false
+          body: 'Deta SDK for Golang. Documentation available at https://docs.deta.sh/docs/base/sdk.'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: deta/deta-go

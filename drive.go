@@ -2,6 +2,7 @@ package deta
 
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -28,4 +29,18 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 			headerValue: projectKey,
 		}),
 	}
+}
+
+// List file names from drive.
+//
+func (d *Drive) list(limit int, prefix, last string) error {
+	url := fmt.Sprintf("/files?limit=%d", limit)
+	if prefix != "" {
+		url = url + fmt.Sprintf("&prefix=%s", prefix)
+	}
+	if last != "" {
+		url = url + fmt.Sprintf("&last=%s", last)
+	}
+	fmt.Println(url)
+	return nil
 }

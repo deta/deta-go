@@ -1,3 +1,3 @@
-module github.com/deta/deta-go
+module github.com/rohanshiva/deta-go
 
-go 1.13
+go 1.16

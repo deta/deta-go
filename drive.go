@@ -1,6 +1,7 @@
 package deta
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -45,4 +46,37 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 			headerValue: projectKey,
 		}),
 	}
+}
+
+type ListOutput struct {
+	Paging *paging  `json:"paging"`
+	Names  []string `json:"names"`
+}
+
+// List file names from the Drive.
+//
+// List is paginated, returns the last name fetched, and the size if further pages are left.
+// Provide the last name in the subsequent list operation to list remaining pages.
+func (d *Drive) List(limit int, prefix, last string) (*ListOutput, error) {
+	url := fmt.Sprintf("/files?limit=%d", limit)
+	if prefix != "" {
+		url = url + fmt.Sprintf("&prefix=%s", prefix)
+	}
+	if last != "" {
+		url = url + fmt.Sprintf("&last=%s", last)
+	}
+	o, err := d.client.request(&requestInput{
+		Path:   url,
+		Method: "GET",
+	})
+	if err != nil {
+		return nil, err
+	}
+	var lr ListOutput
+	err = json.Unmarshal(o.Body, &lr)
+
+	if err != nil {
+		return nil, err
+	}
+	return &lr, nil
 }

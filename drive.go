@@ -3,6 +3,7 @@ package deta
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -46,3 +47,25 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 		}),
 	}
 }
+
+// Get a file from the Drive.
+//
+// Returns a io.ReadCloser for the file from the Drive.
+func (d *Drive) Get(name string) (io.ReadCloser, error) {
+	if name == "" {
+		return nil, ErrEmptyName
+	}
+
+	url := fmt.Sprintf("/files/download?name=%s", name)
+
+	o, err := d.client.request(&requestInput{
+		Path: url,
+		Method: "GET",
+		Read: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return o.RawBody, nil
+}	

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -93,13 +94,16 @@ type requestInput struct {
 	Headers     map[string]string
 	QueryParams map[string]string
 	Body        interface{}
+	RawBody 	[]byte
 	ContentType string
+	Read		bool
 }
 
 // output of request function
 type requestOutput struct {
 	Status int
 	Body   []byte
+	RawBody io.ReadCloser
 	Header http.Header
 	Error  *errorResp
 }
@@ -116,6 +120,10 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	
+	if i.RawBody != nil {
+		marshalled = i.RawBody
 	}
 
 	url := fmt.Sprintf("%s%s", c.rootEndpoint, i.Path)
@@ -144,37 +152,49 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		q.Add(k, v)
 	}
 	req.URL.RawQuery = q.Encode()
-
+	
 	// send the request
 	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
+	
+	// request output
 	o := &requestOutput{
 		Status: res.StatusCode,
 		Header: res.Header,
 	}
 
-	if res.StatusCode >= 200 && res.StatusCode <= 299 {
-		o.Body = b
-		return o, nil
-	}
-
 	// errors
 	var er errorResp
-	// json unmarshal json error responses
-	if strings.Contains(res.Header.Get("Content-Type"), "application/json") {
-		if err = json.Unmarshal(b, &er); err != nil {
+
+	if i.Read {
+		if res.StatusCode >= 200 && res.StatusCode <= 299 {
+			o.RawBody = res.Body
+			return o, nil
+		}
+	} 
+
+	if !i.Read {
+		defer res.Body.Close()
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
 			return nil, err
 		}
+		
+		if res.StatusCode >= 200 && res.StatusCode <= 299 {
+			o.Body = b
+			return o, nil
+		}
+
+		// json unmarshal json error responses
+		if strings.Contains(res.Header.Get("Content-Type"), "application/json") {
+			if err = json.Unmarshal(b, &er); err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	er.StatusCode = res.StatusCode
 	return nil, c.errorRespToErr(&er)
 }

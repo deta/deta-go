@@ -89,23 +89,23 @@ func (c *detaClient) errorRespToErr(e *errorResp) error {
 
 // input to request method
 type requestInput struct {
-	Path        string
-	Method      string
-	Headers     map[string]string
-	QueryParams map[string]string
-	Body        interface{}
-	RawBody 	[]byte
-	ContentType string
-	Read		bool
+	Path           string
+	Method         string
+	Headers        map[string]string
+	QueryParams    map[string]string
+	Body           interface{}
+	RawBody        []byte
+	ContentType    string
+	ShouldReadBody bool
 }
 
 // output of request function
 type requestOutput struct {
-	Status int
-	Body   []byte
-	RawBody io.ReadCloser
-	Header http.Header
-	Error  *errorResp
+	Status         int
+	Body           []byte
+	BodyReadCloser io.ReadCloser
+	Header         http.Header
+	Error          *errorResp
 }
 
 func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
@@ -121,7 +121,7 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 			return nil, err
 		}
 	}
-	
+
 	if i.RawBody != nil {
 		marshalled = i.RawBody
 	}
@@ -152,46 +152,41 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		q.Add(k, v)
 	}
 	req.URL.RawQuery = q.Encode()
-	
+
 	// send the request
 	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// request output
 	o := &requestOutput{
 		Status: res.StatusCode,
 		Header: res.Header,
 	}
 
+	if i.ShouldReadBody && res.StatusCode >= 200 && res.StatusCode <= 299 {
+		o.BodyReadCloser = res.Body
+		return o, nil
+	}
+
+	defer res.Body.Close()
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode >= 200 && res.StatusCode <= 299 {
+		o.Body = b
+		return o, nil
+	}
+
 	// errors
 	var er errorResp
-
-	if i.Read {
-		if res.StatusCode >= 200 && res.StatusCode <= 299 {
-			o.RawBody = res.Body
-			return o, nil
-		}
-	} 
-
-	if !i.Read {
-		defer res.Body.Close()
-		b, err := ioutil.ReadAll(res.Body)
-		if err != nil {
+	// json unmarshal json error responses
+	if strings.Contains(res.Header.Get("Content-Type"), "application/json") {
+		if err = json.Unmarshal(b, &er); err != nil {
 			return nil, err
-		}
-		
-		if res.StatusCode >= 200 && res.StatusCode <= 299 {
-			o.Body = b
-			return o, nil
-		}
-
-		// json unmarshal json error responses
-		if strings.Contains(res.Header.Get("Content-Type"), "application/json") {
-			if err = json.Unmarshal(b, &er); err != nil {
-				return nil, err
-			}
 		}
 	}
 

@@ -60,9 +60,11 @@ type startUploadResponse struct {
 // 
 // If successful, returns the UploadID
 func (d *Drive) startUpload(name string) (string, error) {
-	url := fmt.Sprintf("/uploads?name=%s", name)
+	url := "/uploads"
+	queryParams := map[string]string{"name": name}
 	o, err := d.client.request(&requestInput{
 		Path: url,
+		QueryParams: queryParams,
 		Method: "POST",
 	})
 	if err != nil {
@@ -79,28 +81,36 @@ func (d *Drive) startUpload(name string) (string, error) {
 }
 
 // End a chuncked upload.
-func (d *Drive) finishUpload(name, uploadId string) {
-	url := fmt.Sprintf("/uploads/%s?name=%s", uploadId, name)
-	_, _ = d.client.request(&requestInput{
+func (d *Drive) finishUpload(name, uploadId string) error {
+	url := fmt.Sprintf("/uploads/%s", uploadId)
+	queryParams := map[string]string{"name": name}
+	_, err := d.client.request(&requestInput{
 		Path: url,
+		QueryParams: queryParams,
 		Method: "PATCH",
 	})
+	return err
 }
 
 // Abort a chunked upload. 
-func (d *Drive) abortUpload(name, uploadId string) {
-	url := fmt.Sprintf("/uploads/%s?name=%s", uploadId, name)
-	_, _ = d.client.request(&requestInput{
+func (d *Drive) abortUpload(name, uploadId string) error {
+	url := fmt.Sprintf("/uploads/%s", uploadId)
+	queryParams := map[string]string{"name": name}
+	_, err := d.client.request(&requestInput{
 		Path: url,
+		QueryParams: queryParams,
 		Method: "DELETE",
 	})
+	return err
 }
 
 // Uploads a chunked part.
 func (d *Drive) uploadPart(name string, chunk []byte, uploadId string, part int, contentType string) error {
-	url := fmt.Sprintf("/uploads/%s/parts?name=%s&part=%d", uploadId, name, part)
+	url := fmt.Sprintf("/uploads/%s/parts", uploadId)
+	queryParams := map[string]string{"name": name, "part": fmt.Sprintf("%d", part)}
 	_, err := d.client.request(&requestInput{
 		Path: url,
+		QueryParams: queryParams,
 		Method: "POST",
 		RawBody: chunk,
 		ContentType: contentType,
@@ -113,9 +123,14 @@ func (d *Drive) uploadPart(name string, chunk []byte, uploadId string, part int,
 	return nil
 }
 
+
+// Represents input structure for Put 
 type PutInput struct {
+	// name of file
 	Name string
+	// io.Reader with file content
 	Body io.Reader
+	// content type of file 
 	ContentType string
 }
 
@@ -142,8 +157,10 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 		chunk = chunk[:n]
 
 		if err == io.EOF {
-			fmt.Printf("finishing")
-			d.finishUpload(i.Name, uploadId)
+			err = d.finishUpload(i.Name, uploadId)
+			if err != nil {
+				return i.Name, err
+			}
 			return i.Name, nil
 		}
 
@@ -151,7 +168,7 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 		part = part + 1
 		
 		if err != nil {
-			d.abortUpload(i.Name, uploadId)
+			err = d.abortUpload(i.Name, uploadId)
 			return i.Name, err
 		}
 	}

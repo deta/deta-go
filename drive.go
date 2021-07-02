@@ -50,22 +50,23 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 
 // Get a file from the Drive.
 //
-// Returns a io.ReadCloser for the file from the Drive.
+// Returns a io.ReadCloser for the file.
 func (d *Drive) Get(name string) (io.ReadCloser, error) {
 	if name == "" {
 		return nil, ErrEmptyName
 	}
 
-	url := fmt.Sprintf("/files/download?name=%s", name)
-
+	url := "/files/download"
+	queryParams := map[string]string{"name": name}
 	o, err := d.client.request(&requestInput{
 		Path: url,
+		QueryParams: queryParams,
 		Method: "GET",
-		Read: true,
+		ShouldReadBody: true,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return o.RawBody, nil
-}	
+	return o.BodyReadCloser, nil
+}

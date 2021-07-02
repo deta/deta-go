@@ -54,6 +54,7 @@ import (
 
 const (
 	baseEndpoint = "https://database.deta.sh/v1"
+	driveEndpoint = "https://drive.deta.sh/v1"
 )
 
 var (
@@ -61,6 +62,9 @@ var (
 	ErrBadProjectKey = errors.New("bad project key")
 	// ErrBadBaseName bad base name
 	ErrBadBaseName = errors.New("bad base name")
+	// ErrBadDriveName bad drive name
+	ErrBadDriveName = errors.New("bad drive name")
+
 )
 
 // Deta is a top-level deta service instance
@@ -92,4 +96,16 @@ func (d *Deta) NewBase(baseName string) (*Base, error) {
 		rootEndpoint = baseEndpoint
 	}
 	return newBase(d.projectKey, baseName, rootEndpoint), nil
+}
+
+// NewDrive returns a pointer to a new Drive instance
+func (d *Deta) NewDrive(driveName string) (*Drive, error) {
+	if driveName == "" {
+		return nil, fmt.Errorf("%w: drive name is empty", ErrBadDriveName)
+	}
+	rootEndpoint := os.Getenv("DETA_DRIVE_ROOT_ENDPOINT")
+	if rootEndpoint == "" {
+		rootEndpoint = driveEndpoint
+	}
+	return newDrive(d.projectKey, driveName, rootEndpoint), nil
 }

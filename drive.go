@@ -16,8 +16,8 @@ var (
 	ErrEmptyName    = errors.New("name is empty")
 	// ErrEmptyNames empty names 
 	ErrEmptyNames   = errors.New("names is empty")
-	// ErrTooManyNames too many items 
-	ErrTooManyNames = errors.New("more than 1000 files to delete")
+	// ErrTooManyNames too many names
+	ErrTooManyNames  = errors.New("too many names")
 	// ErrEmptyData no data
 	ErrEmptyData = errors.New("no data provided")
 )
@@ -48,27 +48,29 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 	}
 }
 
+// Represents input structure for DELETE request 
 type deleteManyRequest struct {
 	Names []string `json:"names"`
 }
 
+// Represents output structure of DeleteMany 
 type DeleteManyOutput struct {
 	Deleted []string          `json:"deleted"`
 	Failed  map[string]string `json:"failed"`
 }
 
-// DeleteMany deletes multiple files in the Drive.
+// DeleteMany deletes multiple files in a Drive.
 //
 // Deletes at most 1000 files in a single request.
-// The files names should be in a slice.
-// Returns a response in the DeleteManyOutput interface format.  
+// The file names should be a string slice.
+// Returns a pointer to DeleteManyOutput.
 func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
-	if len(names) == 0 || names == nil {
+	if len(names) == 0 {
 		return nil, ErrEmptyNames
 	}
 
 	if len(names) > 1000 {
-		return nil, ErrTooManyNames
+		return nil, errors.New("more than 1000 files to delete")
 	}
 	o, err := d.client.request(&requestInput{
 		Path:   "/files",
@@ -91,24 +93,22 @@ func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 	return &dr, nil
 }
 
-// Delete a file from the drive
+// Delete a file from a Drive.
 //
-// If deleted (even if file with such name does not exist), returns the name
-// Else returns an error
+// Returns name of file deleted (even if the file does not exist)
 func (d *Drive) Delete(name string) (string, error) {
 	if name == "" {
 		return name, ErrEmptyName
 	}
-	payload := make([]string, 1)
-	payload = append(payload, name)
+	payload := []string{name}
 	dr, err := d.DeleteMany(payload)
 	if err != nil {
 		return name, err
 	}
 
-	_, ok := dr.Failed[name]
+	msg, ok := dr.Failed[name]
 	if !ok {
-		return name, fmt.Errorf("failed to delete %s", name)
+		return name, fmt.Errorf("failed to delete %s: %v", name, msg)
 	}
 
 	return name, nil

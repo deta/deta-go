@@ -12,11 +12,11 @@ const (
 )
 
 var (
-	// ErrEmptyName empty name 
-	ErrEmptyName    = errors.New("name is empty")
-	// ErrEmptyNames empty names 
-	ErrEmptyNames   = errors.New("names is empty")
-	// ErrTooManyNames too many items 
+	// ErrEmptyName empty name
+	ErrEmptyName = errors.New("name is empty")
+	// ErrEmptyNames empty names
+	ErrEmptyNames = errors.New("names is empty")
+	// ErrTooManyNames too many items
 	ErrTooManyNames = errors.New("more than 1000 files to delete")
 	// ErrEmptyData no data
 	ErrEmptyData = errors.New("no data provided")
@@ -48,9 +48,12 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 	}
 }
 
+// Represents output structure of List
 type ListOutput struct {
-	Paging *paging  `json:"paging"`
-	Names  []string `json:"names"`
+	// Pagination information
+	Paging *paging `json:"paging"`
+	// list of file names
+	Names []string `json:"names"`
 }
 
 // List file names from the Drive.
@@ -58,25 +61,29 @@ type ListOutput struct {
 // List is paginated, returns the last name fetched, and the size if further pages are left.
 // Provide the last name in the subsequent list operation to list remaining pages.
 func (d *Drive) List(limit int, prefix, last string) (*ListOutput, error) {
-	url := fmt.Sprintf("/files?limit=%d", limit)
+	url := "/files"
+	queryParams := make(map[string]string)
+	queryParams["limit"] = fmt.Sprintf("%d", limit)
 	if prefix != "" {
-		url = url + fmt.Sprintf("&prefix=%s", prefix)
+		queryParams["prefix"] = prefix
 	}
 	if last != "" {
-		url = url + fmt.Sprintf("&last=%s", last)
+		queryParams["last"] = last
 	}
 	o, err := d.client.request(&requestInput{
-		Path:   url,
-		Method: "GET",
+		Path:        url,
+		QueryParams: queryParams,
+		Method:      "GET",
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	var lr ListOutput
 	err = json.Unmarshal(o.Body, &lr)
-
 	if err != nil {
 		return nil, err
 	}
+	
 	return &lr, nil
 }

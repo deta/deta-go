@@ -107,7 +107,7 @@ func (d *Drive) Delete(name string) (string, error) {
 	}
 
 	msg, ok := dr.Failed[name]
-	if !ok {
+	if ok {
 		return name, fmt.Errorf("failed to delete %s: %v", name, msg)
 	}
 

@@ -330,7 +330,7 @@ func TestListDrive(t *testing.T) {
 
 func TestPutLargeFile(t *testing.T) {
 	drive := SetupDrive()
-	// defer TearDownDrive(drive, t)
+	defer TearDownDrive(drive, t)
 	
 	// create a large random byte chunk
 	b := make([]byte, readChunkSize * 2 + 1000)

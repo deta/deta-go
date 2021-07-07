@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -88,20 +89,23 @@ func (c *detaClient) errorRespToErr(e *errorResp) error {
 
 // input to request method
 type requestInput struct {
-	Path        string
-	Method      string
-	Headers     map[string]string
-	QueryParams map[string]string
-	Body        interface{}
-	ContentType string
+	Path           string
+	Method         string
+	Headers        map[string]string
+	QueryParams    map[string]string
+	Body           interface{}
+	RawBody        []byte
+	ContentType    string
+	ShouldReadBody bool
 }
 
 // output of request function
 type requestOutput struct {
-	Status int
-	Body   []byte
-	Header http.Header
-	Error  *errorResp
+	Status         int
+	Body           []byte
+	BodyReadCloser io.ReadCloser
+	Header         http.Header
+	Error          *errorResp
 }
 
 func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
@@ -116,6 +120,10 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if i.RawBody != nil {
+		marshalled = i.RawBody
 	}
 
 	url := fmt.Sprintf("%s%s", c.rootEndpoint, i.Path)
@@ -150,16 +158,22 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
+	// request output
 	o := &requestOutput{
 		Status: res.StatusCode,
 		Header: res.Header,
+	}
+
+	if i.ShouldReadBody && res.StatusCode >= 200 && res.StatusCode <= 299 {
+		o.BodyReadCloser = res.Body
+		return o, nil
+	}
+
+	defer res.Body.Close()
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
@@ -175,6 +189,7 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 			return nil, err
 		}
 	}
+
 	er.StatusCode = res.StatusCode
 	return nil, c.errorRespToErr(&er)
 }

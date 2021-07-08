@@ -60,10 +60,10 @@ func (d *Drive) Get(name string) (io.ReadCloser, error) {
 	url := "/files/download"
 	queryParams := map[string]string{"name": name}
 	o, err := d.client.request(&requestInput{
-		Path:           url,
-		QueryParams:    queryParams,
-		Method:         "GET",
-		ShouldReadBody: true,
+		Path:             url,
+		QueryParams:      queryParams,
+		Method:           "GET",
+		ReturnReadCloser: true,
 	})
 	if err != nil {
 		return nil, err
@@ -162,15 +162,18 @@ type PutInput struct {
 // Returns the name of file that was put in the drive.
 func (d *Drive) Put(i *PutInput) (string, error) {
 	if i.Name == "" {
-		return i.Name, ErrEmptyName
+		return "", ErrEmptyName
 	}
 
 	if i.Body == nil {
-		return i.Name, ErrEmptyData
+		return "", ErrEmptyData
 	}
 
 	// start upload
-	uploadId, _ := d.startUpload(i.Name)
+	uploadId, err := d.startUpload(i.Name)
+	if err != nil {
+		return "", err
+	}
 	contentStream := i.Body
 	part := 1
 
@@ -182,7 +185,7 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 		if err == io.EOF {
 			err = d.finishUpload(i.Name, uploadId)
 			if err != nil {
-				return i.Name, err
+				return "", err
 			}
 			return i.Name, nil
 		}
@@ -192,7 +195,7 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 
 		if err != nil {
 			err = d.abortUpload(i.Name, uploadId)
-			return i.Name, err
+			return "", err
 		}
 	}
 }
@@ -287,17 +290,17 @@ func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 // Returns name of file deleted (even if the file does not exist)
 func (d *Drive) Delete(name string) (string, error) {
 	if name == "" {
-		return name, ErrEmptyName
+		return "", ErrEmptyName
 	}
 	payload := []string{name}
 	dr, err := d.DeleteMany(payload)
 	if err != nil {
-		return name, err
+		return "", err
 	}
 
 	msg, ok := dr.Failed[name]
 	if ok {
-		return name, fmt.Errorf("failed to delete %s: %v", name, msg)
+		return "", fmt.Errorf("failed to delete %s: %v", name, msg)
 	}
 
 	return name, nil

@@ -89,14 +89,14 @@ func (c *detaClient) errorRespToErr(e *errorResp) error {
 
 // input to request method
 type requestInput struct {
-	Path           string
-	Method         string
-	Headers        map[string]string
-	QueryParams    map[string]string
-	Body           interface{}
-	RawBody        []byte
-	ContentType    string
-	ShouldReadBody bool
+	Path             string
+	Method           string
+	Headers          map[string]string
+	QueryParams      map[string]string
+	Body             interface{}
+	RawBody          []byte
+	ContentType      string
+	ReturnReadCloser bool
 }
 
 // output of request function
@@ -165,7 +165,7 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		Header: res.Header,
 	}
 
-	if i.ShouldReadBody && res.StatusCode >= 200 && res.StatusCode <= 299 {
+	if i.ReturnReadCloser && res.StatusCode >= 200 && res.StatusCode <= 299 {
 		o.BodyReadCloser = res.Body
 		return o, nil
 	}

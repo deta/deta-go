@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ const (
 func SetupDrive() *Drive {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	driveName := os.Getenv("DETA_SDK_TEST_DRIVE_NAME")
-	rootEndpoint := os.Getenv("DETA_SDK_TEST_ENDPOINT")
+	rootEndpoint := os.Getenv("DETA_SDK_TEST_DRIVE_ENDPOINT")
 	return newDrive(projectKey, driveName, rootEndpoint)
 }
 
@@ -36,7 +37,7 @@ func TearDownDrive(d *Drive, t *testing.T) {
 
 }
 
-func TestPutDrive(t *testing.T) {
+func TestPutStringDrive(t *testing.T) {
 	drive := SetupDrive()
 	defer TearDownDrive(drive, t)
 
@@ -59,6 +60,11 @@ func TestPutDrive(t *testing.T) {
 			Content:     "lorem ipsum",
 		},
 		{
+			Name:    "file with no content type.txt",
+			Body:    strings.NewReader("no content type"),
+			Content: "no content type",
+		},
+		{
 			Name:        "test_file_1.txt",
 			Body:        strings.NewReader("same file name should be overwritten"),
 			ContentType: "text/plain",
@@ -78,7 +84,7 @@ func TestPutDrive(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(tc.Name, name) {
-			t.Errorf("File names are not equal. \nExpected \n%vGot:\n%v", tc.Name, name)
+			t.Errorf("File names are not equal. \nExpected \n%v\nGot:\n%v", tc.Name, name)
 		}
 
 		driveContent, err := drive.Get(tc.Name)
@@ -90,6 +96,60 @@ func TestPutDrive(t *testing.T) {
 		if b, err := ioutil.ReadAll(driveContent); err == nil {
 			if !reflect.DeepEqual(tc.Content, string(b)) {
 				t.Errorf("Fetched content not equal to expected. \nExpected:\n%v\nGot:\n%v", tc.Content, string(b))
+			}
+		}
+
+	}
+
+}
+
+func TestPutBytesDrive(t *testing.T) {
+	drive := SetupDrive()
+	defer TearDownDrive(drive, t)
+
+	b := make([]byte, 20)
+	_, err := rand.Read(b)
+	if !errors.Is(err, nil) {
+		t.Errorf("Failed to generate random large file with error %v", err)
+	}
+	testCases := []struct {
+		Name        string
+		Body        io.Reader
+		ContentType string
+		Content     []byte
+	}{
+		{
+			Name:        "test_file_1.txt",
+			Body:        bytes.NewReader(b),
+			ContentType: "text/plain",
+			Content:     b,
+		},
+	}
+
+	for _, tc := range testCases {
+		name, err := drive.Put(&PutInput{
+			Name:        tc.Name,
+			Body:        tc.Body,
+			ContentType: tc.ContentType,
+		})
+
+		if !errors.Is(err, nil) {
+			t.Errorf("Unexpected error value. Expected %v Got %v", nil, err)
+		}
+
+		if !reflect.DeepEqual(tc.Name, name) {
+			t.Errorf("File names are not equal. \nExpected \n%v\nGot:\n%v", tc.Name, name)
+		}
+
+		driveContent, err := drive.Get(tc.Name)
+		if !errors.Is(err, nil) {
+			t.Errorf("Unexpected error while trying to get file content.")
+		}
+		defer driveContent.Close()
+
+		if b, err := ioutil.ReadAll(driveContent); err == nil {
+			if !reflect.DeepEqual(tc.Content, b) {
+				t.Errorf("Fetched content not equal to expected. \nExpected:\n%v\nGot:\n%v", tc.Content, b)
 			}
 		}
 

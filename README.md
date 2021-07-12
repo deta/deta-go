@@ -29,7 +29,9 @@ To get the latest SDK repository change use `@latest`.
 go get github.com/aws/deta-go@latest
 ```
 
-## Example
+## Examples
+
+### Base
 
 ```go
 package main
@@ -73,3 +75,71 @@ func main(){
 ```
 
 More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
+
+### Drive
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/deta/deta-go"
+)
+
+func main() {
+    // initialize with project key
+    // returns ErrBadProjectKey if project key is invalid
+    d, err := deta.New("project_key")
+    if err != nil {
+        fmt.Println("failed to init new Deta instance:", err)
+        return  
+    }
+
+    // initialize with drive name
+    // returns ErrBadDriveName if drive name is invalid
+    drive, err := d.NewDrive("drive_name")
+    if err != nil {
+        fmt.Println("failed to init new Drive instance:", err)  
+        return  
+    }
+
+    // PUT	
+    // reading from a local file
+    file, err := os.Open("./art.svg")
+    defer file.Close()
+    
+    name, err = drive.Put(&deta.PutInput{
+            Name: "art.svg",
+            Body: bufio.NewReader(file),
+            ContentType: "image/svg+xml",
+    })
+    if err != nil {
+        fmt.Println("Failed to put file:", err)
+        return  
+    }
+    fmt.Println("Successfully put file with name:", name)
+    
+    // GET
+    name := "hello.txt"
+    f, err := drive.Get(name)
+    if err != nil {
+        fmt.Println("Failed to get file with name:", name)
+        return
+    }
+    
+    // DELETE
+    name, err := d.Delete("hello.txt")
+    if err != nil {
+        fmt.Println("Failed to delete file with name:" name)
+        return
+    }
+    fmt.Println("Successfully deleted file with name:", name)
+    
+    // LIST 
+    lr, err := drive.List(1000, "", "")
+    if err != nil {
+        fmt.Println("Failed to list names from drive with err:", err)
+    }
+    fmt.Println("names:", lr.Names)
+}
+```
+More examples and complete documentation on https://docs.deta.sh/docs/drive/sdk/

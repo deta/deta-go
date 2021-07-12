@@ -81,8 +81,11 @@ More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/deta/deta-go"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
@@ -107,7 +110,7 @@ func main() {
 	file, err := os.Open("./art.svg")
 	defer file.Close()
 
-	name, err = drive.Put(&deta.PutInput{
+	name, err := drive.Put(&deta.PutInput{
 		Name:        "art.svg",
 		Body:        bufio.NewReader(file),
 		ContentType: "image/svg+xml",
@@ -119,10 +122,10 @@ func main() {
 	fmt.Println("Successfully put file with name:", name)
 
 	// GET
-	name := "hello.txt"
+	name = "art.svg"
 	f, err := drive.Get(name)
 	if err != nil {
-		fmt.Println("Failed to get file with name:", name)
+		fmt.Println("Failed to get file with name:", name, err)
 		return
 	}
 	defer f.Close()
@@ -135,7 +138,7 @@ func main() {
 	fmt.Println("file content:", string(c))
 
 	// DELETE
-	name, err := d.Delete("hello.txt")
+	name, err = drive.Delete("hello.txt")
 	if err != nil {
 		fmt.Println("Failed to delete file with name:", name)
 		return

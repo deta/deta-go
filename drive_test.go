@@ -2,7 +2,7 @@ package deta
 
 import (
 	"bytes"
-	"crypto/rand"
+	"math/rand"
 	"errors"
 	"io"
 	"io/ioutil"

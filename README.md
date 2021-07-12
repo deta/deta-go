@@ -125,6 +125,7 @@ func main() {
         fmt.Println("Failed to get file with name:", name)
         return
     }
+    defer f.Close()
     
     // DELETE
     name, err := d.Delete("hello.txt")

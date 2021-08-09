@@ -50,6 +50,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"github.com/deta/deta-go/service/base"
+	"github.com/deta/deta-go/service/drive"
 )
 
 const (
@@ -87,7 +89,7 @@ func New(projectKey string) (*Deta, error) {
 }
 
 // NewBase returns a pointer to a new Base instance
-func (d *Deta) NewBase(baseName string) (*Base, error) {
+func (d *Deta) NewBase(baseName string) (*base.Base, error) {
 	if baseName == "" {
 		return nil, fmt.Errorf("%w: base name is empty", ErrBadBaseName)
 	}
@@ -95,11 +97,11 @@ func (d *Deta) NewBase(baseName string) (*Base, error) {
 	if rootEndpoint == "" {
 		rootEndpoint = baseEndpoint
 	}
-	return newBase(d.projectKey, baseName, rootEndpoint), nil
+	return base.NewBase(d.projectKey, baseName, rootEndpoint), nil
 }
 
 // NewDrive returns a pointer to a new Drive instance
-func (d *Deta) NewDrive(driveName string) (*Drive, error) {
+func (d *Deta) NewDrive(driveName string) (*drive.Drive, error) {
 	if driveName == "" {
 		return nil, fmt.Errorf("%w: drive name is empty", ErrBadDriveName)
 	}
@@ -107,5 +109,5 @@ func (d *Deta) NewDrive(driveName string) (*Drive, error) {
 	if rootEndpoint == "" {
 		rootEndpoint = driveEndpoint
 	}
-	return newDrive(d.projectKey, driveName, rootEndpoint), nil
+	return drive.NewDrive(d.projectKey, driveName, rootEndpoint), nil
 }

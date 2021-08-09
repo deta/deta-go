@@ -1,4 +1,4 @@
-package deta
+package base
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"github.com/deta/deta-go/internal/client"
 )
 
 var (
@@ -20,10 +21,10 @@ var (
 // Base is a Deta Base service client that offers the API to make requests to Deta Base
 type Base struct {
 	// deta api client
-	client *detaClient
+	client *client.DetaClient
 
 	// auth info for authenticating requests
-	auth *authInfo
+	auth *client.AuthInfo
 
 	// base utilities
 	Util *util
@@ -46,7 +47,7 @@ type Query []map[string]interface{}
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base
-func newBase(projectKey, baseName, rootEndpoint string) *Base {
+func NewBase(projectKey, baseName, rootEndpoint string) *Base {
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
@@ -54,10 +55,10 @@ func newBase(projectKey, baseName, rootEndpoint string) *Base {
 	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, baseName)
 
 	return &Base{
-		client: newDetaClient(rootEndpoint, &authInfo{
-			authType:    "api-key",
-			headerKey:   "X-API-Key",
-			headerValue: projectKey,
+		client: client.NewDetaClient(rootEndpoint, &client.AuthInfo{
+			AuthType:    "api-key",
+			HeaderKey:   "X-API-Key",
+			HeaderValue: projectKey,
 		}),
 	}
 }
@@ -124,7 +125,7 @@ func (b *Base) put(items []baseItem) ([]string, error) {
 	body := map[string]interface{}{
 		"items": items,
 	}
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   "/items",
 		Method: "PUT",
 		Body:   body,
@@ -198,7 +199,7 @@ func (b *Base) PutMany(items interface{}) ([]string, error) {
 // The item is scanned onto `dest`.
 func (b *Base) Get(key string, dest interface{}) error {
 	escapedKey := url.PathEscape(key)
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "GET",
 	})
@@ -230,7 +231,7 @@ func (b *Base) Insert(item interface{}) (string, error) {
 		Item: modifiedItem,
 	}
 
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   "/items",
 		Method: "POST",
 		Body:   ir,
@@ -290,7 +291,7 @@ func (b *Base) Update(key string, updates Updates) error {
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
-	_, err := b.client.request(&requestInput{
+	_, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",
 		Body:   ur,
@@ -308,7 +309,7 @@ func (b *Base) Delete(key string) error {
 	// escape the key
 	escapedKey := url.PathEscape(key)
 
-	_, err := b.client.request(&requestInput{
+	_, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "DELETE",
 	})
@@ -335,7 +336,7 @@ type fetchResponse struct {
 }
 
 func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/query"),
 		Method: "POST",
 		Body:   req,

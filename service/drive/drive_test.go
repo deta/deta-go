@@ -1,4 +1,4 @@
-package deta
+package drive
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func SetupDrive() *Drive {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	driveName := os.Getenv("DETA_SDK_TEST_DRIVE_NAME")
 	rootEndpoint := os.Getenv("DETA_SDK_TEST_DRIVE_ENDPOINT")
-	return newDrive(projectKey, driveName, rootEndpoint)
+	return NewDrive(projectKey, driveName, rootEndpoint)
 }
 
 func TearDownDrive(d *Drive, t *testing.T) {

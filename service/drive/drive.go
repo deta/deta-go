@@ -1,4 +1,4 @@
-package deta
+package drive
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"github.com/deta/deta-go/internal/client"
 )
 
 const (
@@ -26,14 +27,14 @@ var (
 // Drive is a Deta Drive service client that offers the API to make requests to Deta Drive
 type Drive struct {
 	// deta api client
-	client *detaClient
+	client *client.DetaClient
 
 	// auth info for authenticating requests
-	auth *authInfo
+	auth *client.AuthInfo
 }
 
 // NewDrive returns a pointer to new Drive
-func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
+func NewDrive(projectKey, driveName, rootEndpoint string) *Drive {
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
@@ -41,10 +42,10 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, driveName)
 
 	return &Drive{
-		client: newDetaClient(rootEndpoint, &authInfo{
-			authType:    "api-key",
-			headerKey:   "X-API-Key",
-			headerValue: projectKey,
+		client: client.NewDetaClient(rootEndpoint, &client.AuthInfo{
+			AuthType:    "api-key",
+			HeaderKey:   "X-API-Key",
+			HeaderValue: projectKey,
 		}),
 	}
 }
@@ -59,7 +60,7 @@ func (d *Drive) Get(name string) (io.ReadCloser, error) {
 
 	url := "/files/download"
 	queryParams := map[string]string{"name": name}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:             url,
 		QueryParams:      queryParams,
 		Method:           "GET",
@@ -86,7 +87,7 @@ type startUploadResponse struct {
 func (d *Drive) startUpload(name string) (string, error) {
 	url := "/uploads"
 	queryParams := map[string]string{"name": name}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "POST",
@@ -108,7 +109,7 @@ func (d *Drive) startUpload(name string) (string, error) {
 func (d *Drive) finishUpload(name, uploadId string) error {
 	url := fmt.Sprintf("/uploads/%s", uploadId)
 	queryParams := map[string]string{"name": name}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "PATCH",
@@ -120,7 +121,7 @@ func (d *Drive) finishUpload(name, uploadId string) error {
 func (d *Drive) abortUpload(name, uploadId string) error {
 	url := fmt.Sprintf("/uploads/%s", uploadId)
 	queryParams := map[string]string{"name": name}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "DELETE",
@@ -132,7 +133,7 @@ func (d *Drive) abortUpload(name, uploadId string) error {
 func (d *Drive) uploadPart(name string, chunk []byte, uploadId string, part int, contentType string) error {
 	url := fmt.Sprintf("/uploads/%s/parts", uploadId)
 	queryParams := map[string]string{"name": name, "part": fmt.Sprintf("%d", part)}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "POST",
@@ -199,7 +200,10 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 		}
 	}
 }
-
+type paging struct {
+	Size int     `json:"size"`
+	Last *string `json:"last"`
+}
 // ListOutput output for List operation.
 type ListOutput struct {
 	// Pagination information
@@ -222,7 +226,7 @@ func (d *Drive) List(limit int, prefix, last string) (*ListOutput, error) {
 	if last != "" {
 		queryParams["last"] = last
 	}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "GET",
@@ -264,7 +268,7 @@ func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 	if len(names) > 1000 {
 		return nil, errors.New("more than 1000 files to delete")
 	}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:   "/files",
 		Method: "DELETE",
 		Body: &deleteManyRequest{

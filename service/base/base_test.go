@@ -1,10 +1,11 @@
-package deta
+package base
 
 import (
 	"errors"
 	"os"
 	"reflect"
 	"testing"
+	"github.com/deta/deta-go/internal/client"
 )
 
 type nestedCustomTestStruct struct {
@@ -24,7 +25,7 @@ func Setup() *Base {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	baseName := os.Getenv("DETA_SDK_TEST_BASE_NAME")
 	rootEndpoint := os.Getenv("DETA_SDK_TEST_BASE_ENDPOINT")
-	return newBase(projectKey, baseName, rootEndpoint)
+	return NewBase(projectKey, baseName, rootEndpoint)
 }
 
 func TearDown(b *Base, t *testing.T) {
@@ -349,7 +350,7 @@ func TestInsert(t *testing.T) {
 					TestInt: 1,
 				},
 			},
-			err: ErrConflict,
+			err: client.ErrConflict,
 		},
 	}
 
@@ -422,7 +423,7 @@ func TestDelete(t *testing.T) {
 		}
 		var dest customTestStruct
 		err = base.Get(key, &dest)
-		if !errors.Is(err, ErrNotFound) {
+		if !errors.Is(err, client.ErrNotFound) {
 			t.Errorf("Item with key %s not deleted from database", key)
 		}
 	}

@@ -77,6 +77,8 @@ func main(){
 More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
 
 ### Drive
+
+#### Put
 ```go
 import (
     "bufio"
@@ -123,6 +125,7 @@ func main() {
 }
 ```
 
+#### Get
 ```go
 import (
     "fmt"
@@ -168,6 +171,7 @@ func main() {
 }
 ```
 
+#### Delete
 ```go
 import (
     "fmt"
@@ -203,6 +207,7 @@ func main() {
 }
 ```
 
+#### List
 ```go
 import (
     "fmt"

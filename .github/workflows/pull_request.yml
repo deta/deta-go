@@ -22,4 +22,4 @@ jobs:
           DETA_SDK_TEST_PROJECT_KEY: ${{secrets.DETA_SDK_TEST_PROJECT_KEY}}
           DETA_SDK_TEST_BASE_ENDPOINT: ${{secrets.DETA_SDK_TEST_BASE_ENDPOINT}}
           DETA_SDK_TEST_DRIVE_ENDPOINT: ${{secrets.DETA_SDK_TEST_DRIVE_ENDPOINT}}
-        run: go test
+        run: go test ./...

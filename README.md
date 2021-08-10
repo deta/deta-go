@@ -34,36 +34,33 @@ go get github.com/aws/deta-go@latest
 ### Base
 
 ```go
-package main
 
 import (
 	"fmt"
+
 	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
 )
 
 type User struct {
-	Key string `json:"key"` // json struct tag key to denote the key
+	Key      string `json:"key"` // json struct tag key to denote the key
 	Username string `json:"username"`
-	Email string `json:"email"`
+	Email    string `json:"email"`
 }
 
-func main(){
-	d, err := deta.New("project_key")
-	if err != nil{
-		fmt.Println("failed to init a new Deta instance:", err)
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
 		return
 	}
 
-	db, err := d.NewBase("base_name")
-	if err != nil{
-		fmt.Println("failed to init a new Base instance:", err)
-		return
-	}
+	db := base.New(d, "users")
 
 	u := &User{
-		Key: "abasd",
+		Key:      "abasd",
 		Username: "jimmy",
-		Email: "jimmy@deta.sh",
+		Email:    "jimmy@deta.sh",
 	}
 	key, err := db.Put(u)
 	if err != nil {
@@ -81,164 +78,150 @@ More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
 #### Put
 ```go
 import (
-    "bufio"
-    "fmt"
-    "os"
+	"bufio"
+	"fmt"
+	"os"
 
-    "github.com/deta/deta-go/deta"
-    dr "github.com/deta/deta-go/service/drive"
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
 )
 
 func main() {
 
-    // initialize with project key
-    // returns ErrBadProjectKey if project key is invalid
-    d, err := deta.New("project_key")
-    if err != nil {
-        fmt.Println("failed to init new Deta instance:", err)
-        return
-    }
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
 
-    // initialize with drive name
-    // returns ErrBadDriveName if drive name is invalid
-    drive, err := d.NewDrive("drive_name")
-    if err != nil {
-        fmt.Println("failed to init new Drive instance:", err)
-        return
-    }
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings := drive.New(d, "drawings")
 
-    // PUT
-    // reading from a local file
-    file, err := os.Open("./art.svg")
-    defer file.Close()
+	// PUT
+	// reading from a local file
+	file, err := os.Open("./art.svg")
+	defer file.Close()
 
-    name, err := drive.Put(&dr.PutInput{
-        Name:        "art.svg",
-        Body:        bufio.NewReader(file),
-        ContentType: "image/svg+xml",
-    })
-    if err != nil {
-        fmt.Println("Failed to put file:", err)
-        return
-    }
-    fmt.Println("Successfully put file with name:", name)
+	name, err := drawings.Put(&drive.PutInput{
+		Name:        "art.svg",
+		Body:        bufio.NewReader(file),
+		ContentType: "image/svg+xml",
+	})
+	if err != nil {
+		fmt.Println("Failed to put file:", err)
+		return
+	}
+	fmt.Println("Successfully put file with name:", name)
 }
 ```
 
 #### Get
 ```go
 import (
-    "fmt"
-    "io/ioutil"
+	"fmt"
+	"io/ioutil"
 
-    "github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
 )
 
 func main() {
 
-    // initialize with project key
-    // returns ErrBadProjectKey if project key is invalid
-    d, err := deta.New("project_key")
-    if err != nil {
-        fmt.Println("failed to init new Deta instance:", err)
-        return
-    }
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
 
-    // initialize with drive name
-    // returns ErrBadDriveName if drive name is invalid
-    drive, err := d.NewDrive("drive_name")
-    if err != nil {
-        fmt.Println("failed to init new Drive instance:", err)
-        return
-    }
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings := drive.New(d, "drawings")
 
-    // GET
-    name := "art.svg"
-    f, err := drive.Get(name)
-    if err != nil {
-        fmt.Println("Failed to get file with name:", name)
-        return
-    }
-    defer f.Close()
+	// GET
+	name := "art.svg"
+	f, err := drawings.Get(name)
+	if err != nil {
+		fmt.Println("Failed to get file with name:", name)
+		return
+	}
+	defer f.Close()
 
-    c, err := ioutil.ReadAll(f)
-    if err != nil {
-        fmt.Println("Failed read file content with err:", err)
-        return
-    }
-    fmt.Println("file content:", string(c))
-
+	c, err := ioutil.ReadAll(f)
+	if err != nil {
+		fmt.Println("Failed read file content with err:", err)
+		return
+	}
+	fmt.Println("file content:", string(c))
 }
 ```
 
 #### Delete
 ```go
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/deta/deta-go/deta"
+	"drive-sdk/deta"
+	"drive-sdk/service/drive"
 )
 
 func main() {
 
-    // initialize with project key
-    // returns ErrBadProjectKey if project key is invalid
-    d, err := deta.New("project_key")
-    if err != nil {
-        fmt.Println("failed to init new Deta instance:", err)
-        return
-    }
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
 
-    // initialize with drive name
-    // returns ErrBadDriveName if drive name is invalid
-    drive, err := d.NewDrive("drive_name")
-    if err != nil {
-        fmt.Println("failed to init new Drive instance:", err)
-        return
-    }
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings := drive.New(d, "drawings")
 
-    // DELETE
-    name, err := drive.Delete("art.svg")
-    if err != nil {
-        fmt.Println("Failed to delete file with name:", name)
-        return
-    }
-    fmt.Println("Successfully deleted file with name:", name)
+	// DELETE
+	name, err := drawings.Delete("art.svg")
+	if err != nil {
+		fmt.Println("Failed to delete file with name:", name)
+		return
+	}
+	fmt.Println("Successfully deleted file with name:", name)
 }
 ```
 
 #### List
 ```go
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
 )
 
 func main() {
 
-    // initialize with project key
-    // returns ErrBadProjectKey if project key is invalid
-    d, err := deta.New("project_key")
-    if err != nil {
-        fmt.Println("failed to init new Deta instance:", err)
-        return
-    }
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
 
-    // initialize with drive name
-    // returns ErrBadDriveName if drive name is invalid
-    drive, err := d.NewDrive("drive_name")
-    if err != nil {
-        fmt.Println("failed to init new Drive instance:", err)
-        return
-    }
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings := drive.New(d, "drawings")
 
-    // LIST
-    lr, err := drive.List(1000, "", "")
-    if err != nil {
-        fmt.Println("Failed to list names from drive with err:", err)
-    }
-    fmt.Println("names:", lr.Names)
+	// LIST
+	lr, err := drawings.List(1000, "", "")
+	if err != nil {
+		fmt.Println("Failed to list names from drive with err:", err)
+	}
+	fmt.Println("names:", lr.Names)
 }
 ```
 More examples and complete documentation on https://docs.deta.sh/docs/drive/sdk/

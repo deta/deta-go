@@ -226,30 +226,30 @@ func main() {
 	}
 
 	db := base.New(d, "users")
-    // users
-    u1 := &User{
-        Key: "kasdlj1",
-        Username: "jimmy",
-        Active: true,
-        Age: 20,
-        Likes: []string{"ramen"},
-    }
-    u2 := &User{
-      Key: "askdjf",
-      Username: "joel",
-      Active: true,
-      Age: 23,
-      Likes: []string{"coffee"},
-    }
-    users := []*User{u1, u2}
+	// users
+	u1 := &User{
+		Key:      "kasdlj1",
+		Username: "jimmy",
+		Active:   true,
+		Age:      20,
+		Likes:    []string{"ramen"},
+	}
+	u2 := &User{
+		Key:      "askdjf",
+		Username: "joel",
+		Active:   true,
+		Age:      23,
+		Likes:    []string{"coffee"},
+	}
+	users := []*User{u1, u2}
 
-    // put items in the database
-    keys, err := db.PutMany(users)
-    if err != nil {
-        fmt.Println("Failed to put items:", err)
-        return
-    }
-    fmt.Println("Successfully put item with keys:", keys)
+	// put items in the database
+	keys, err := db.PutMany(users)
+	if err != nil {
+		fmt.Println("Failed to put items:", err)
+		return
+	}
+	fmt.Println("Successfully put item with keys:", keys)
 }
 ```
 #### Update
@@ -291,7 +291,7 @@ func main() {
 }
 ```
 #### Fetch 
-```
+```go
 import (
 	"fmt"
 
@@ -335,7 +335,7 @@ func main() {
 }
 ```
 #### Fetch Paginated
-```
+```go
 import (
 	"fmt"
 

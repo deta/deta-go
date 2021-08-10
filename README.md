@@ -165,8 +165,8 @@ func main() {
 import (
 	"fmt"
 
-	"drive-sdk/deta"
-	"drive-sdk/service/drive"
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
 )
 
 func main() {

@@ -91,6 +91,45 @@ func main() {
 }
 ```
 
+#### Get
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db := base.New(d, "users")
+
+	// a variable to store the result
+	var u User
+
+	// get item
+	// returns ErrNotFound if no item was found
+	err = db.Get("kasdlj1", &u)
+	if err != nil {
+		fmt.Println("Failed to get item:", err)
+	}
+}
+
+```
+
 More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
 
 ### Drive

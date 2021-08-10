@@ -6,32 +6,30 @@ Example:
 
 	import (
 		"fmt"
-		"github.com/deta/deta-go"
+
+		"github.com/deta/deta-go/deta"
+		"github.com/deta/deta-go/service/base"
 	)
 
 	type User struct {
-		Key string `json:"key"`
+		Key      string `json:"key"` // json struct tag key to denote the key
 		Username string `json:"username"`
-		Email string `json:"email"`
+		Email    string `json:"email"`
 	}
 
-	func main(){
-		d, err := deta.New("project_key")
-		if err != nil{
-			fmt.Println("failed to init a new Deta instance:", err)
+	func main() {
+		d, err := deta.New(deta.WithProjectKey("project_key"))
+		if err != nil {
+			fmt.Println("failed to init new Deta instance:", err)
 			return
 		}
 
-		db, err := d.NewBase("base_name")
-		if err != nil{
-			fmt.Println("failed to init a new Base instance:", err)
-			return
-		}
+		db := base.New(d, "users")
 
 		u := &User{
-			Key: "abasd",
+			Key:      "abasd",
 			Username: "jimmy",
-			Email: "jimmy@deta.sh",
+			Email:    "jimmy@deta.sh",
 		}
 		key, err := db.Put(u)
 		if err != nil {
@@ -47,16 +45,8 @@ package deta
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"strings"
-	"github.com/deta/deta-go/service/base"
-	"github.com/deta/deta-go/service/drive"
-)
-
-const (
-	baseEndpoint = "https://database.deta.sh/v1"
-	driveEndpoint = "https://drive.deta.sh/v1"
 )
 
 var (
@@ -66,48 +56,37 @@ var (
 	ErrBadBaseName = errors.New("bad base name")
 	// ErrBadDriveName bad drive name
 	ErrBadDriveName = errors.New("bad drive name")
-
+	// ErrInvalidConfig
+	ErrInvalidConfig = errors.New("invalid config arguments")
 )
 
 // Deta is a top-level deta service instance
 type Deta struct {
-	projectKey string
+	ProjectKey string
+}
+
+type Config struct {
+	ProjectKey string
+}
+type DetaOption func(*Deta)
+
+func WithProjectKey(projectKey string) DetaOption {
+	return func(d *Deta) {
+		d.ProjectKey = projectKey
+	}
 }
 
 // New returns a pointer to a new Deta instance
-func New(projectKey string) (*Deta, error) {
-	if projectKey == "" {
-		projectKey = os.Getenv("DETA_PROJECT_KEY")
+func New(opts ...DetaOption) (*Deta, error) {
+	d := &Deta{
+		ProjectKey: os.Getenv("DETA_PROJECT_KEY"),
+	}
+	for _, opt := range opts {
+		opt(d)
 	}
 	// verify project id
-	if len(strings.Split(projectKey, "_")) != 2 {
+	if len(strings.Split(d.ProjectKey, "_")) != 2 {
 		return nil, ErrBadProjectKey
 	}
-	return &Deta{
-		projectKey: projectKey,
-	}, nil
-}
-
-// NewBase returns a pointer to a new Base instance
-func (d *Deta) NewBase(baseName string) (*base.Base, error) {
-	if baseName == "" {
-		return nil, fmt.Errorf("%w: base name is empty", ErrBadBaseName)
-	}
-	rootEndpoint := os.Getenv("DETA_BASE_ROOT_ENDPOINT")
-	if rootEndpoint == "" {
-		rootEndpoint = baseEndpoint
-	}
-	return base.NewBase(d.projectKey, baseName, rootEndpoint), nil
-}
-
-// NewDrive returns a pointer to a new Drive instance
-func (d *Deta) NewDrive(driveName string) (*drive.Drive, error) {
-	if driveName == "" {
-		return nil, fmt.Errorf("%w: drive name is empty", ErrBadDriveName)
-	}
-	rootEndpoint := os.Getenv("DETA_DRIVE_ROOT_ENDPOINT")
-	if rootEndpoint == "" {
-		rootEndpoint = driveEndpoint
-	}
-	return drive.NewDrive(d.projectKey, driveName, rootEndpoint), nil
+	return d, nil
 }

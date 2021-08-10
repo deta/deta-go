@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
+
+	"github.com/deta/deta-go/deta"
 	"github.com/deta/deta-go/internal/client"
 )
 
 const (
 	uploadChunkSize = 1024 * 1024 * 10
+	driveEndpoint   = "https://drive.deta.sh/v1"
 )
 
 var (
@@ -34,13 +38,16 @@ type Drive struct {
 }
 
 // NewDrive returns a pointer to new Drive
-func NewDrive(projectKey, driveName, rootEndpoint string) *Drive {
+func New(d *deta.Deta, driveName string) *Drive {
+	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
-	// root endpoint for the base
+	rootEndpoint := os.Getenv("DETA_DRIVE_ROOT_ENDPOINT")
+	if rootEndpoint == "" {
+		rootEndpoint = driveEndpoint
+	}
 	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, driveName)
-
 	return &Drive{
 		client: client.NewDetaClient(rootEndpoint, &client.AuthInfo{
 			AuthType:    "api-key",
@@ -200,10 +207,12 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 		}
 	}
 }
+
 type paging struct {
 	Size int     `json:"size"`
 	Last *string `json:"last"`
 }
+
 // ListOutput output for List operation.
 type ListOutput struct {
 	// Pagination information

@@ -5,6 +5,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/deta/deta-go/deta"
 	"github.com/deta/deta-go/internal/client"
 )
 
@@ -24,8 +26,8 @@ type customTestStruct struct {
 func Setup() *Base {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	baseName := os.Getenv("DETA_SDK_TEST_BASE_NAME")
-	rootEndpoint := os.Getenv("DETA_SDK_TEST_BASE_ENDPOINT")
-	return NewBase(projectKey, baseName, rootEndpoint)
+	d, _ := deta.New(deta.WithProjectKey(projectKey))
+	return New(d, baseName)
 }
 
 func TearDown(b *Base, t *testing.T) {

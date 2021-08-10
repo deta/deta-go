@@ -5,8 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
+
+	"github.com/deta/deta-go/deta"
 	"github.com/deta/deta-go/internal/client"
+)
+
+const (
+	baseEndpoint = "https://database.deta.sh/v1"
 )
 
 var (
@@ -47,11 +54,15 @@ type Query []map[string]interface{}
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base
-func NewBase(projectKey, baseName, rootEndpoint string) *Base {
+func New(d *deta.Deta, baseName string) *Base {
+	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
-	// root endpoint for the base
+	rootEndpoint := os.Getenv("DETA_BASE_ROOT_ENDPOINT")
+	if rootEndpoint == "" {
+		rootEndpoint = baseEndpoint
+	}
 	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, baseName)
 
 	return &Base{

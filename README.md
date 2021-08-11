@@ -38,8 +38,8 @@ go get github.com/aws/deta-go@latest
 import (
 	"fmt"
 
-	"drive-sdk/deta"
-	"drive-sdk/service/base"
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
 )
 
 type User struct {
@@ -51,7 +51,7 @@ type User struct {
 }
 
 func main() {
-	d, err := deta.New(deta.WithProjectKey("b0jt0c3z_1gB1P2zfrMv1Xq1RbGzhHP3TBfh5hw1u "))
+	d, err := deta.New(deta.WithProjectKey("project_key"))
 	if err != nil {
 		fmt.Println("failed to init new Deta instance:", err)
 		return

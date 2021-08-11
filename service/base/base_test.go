@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/deta/deta-go/deta"
-	"github.com/deta/deta-go/internal/client"
 )
 
 type nestedCustomTestStruct struct {
@@ -27,7 +26,8 @@ func Setup() *Base {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	baseName := os.Getenv("DETA_SDK_TEST_BASE_NAME")
 	d, _ := deta.New(deta.WithProjectKey(projectKey))
-	return New(d, baseName)
+	base, _ := New(d, baseName)
+	return base
 }
 
 func TearDown(b *Base, t *testing.T) {
@@ -168,7 +168,7 @@ func TestGet(t *testing.T) {
 
 	// put items
 	testItems := []*customTestStruct{
-		&customTestStruct{
+		{
 			TestKey:   "a",
 			TestValue: "value",
 			TestNested: &nestedCustomTestStruct{
@@ -177,7 +177,7 @@ func TestGet(t *testing.T) {
 				TestBool: true,
 			},
 		},
-		&customTestStruct{
+		{
 			TestKey:   "b",
 			TestValue: "value",
 		},
@@ -225,14 +225,14 @@ func TestPutMany(t *testing.T) {
 	defer TearDown(base, t)
 
 	testItems := []*customTestStruct{
-		&customTestStruct{
+		{
 			TestKey:   "key",
 			TestValue: "value",
 			TestNested: &nestedCustomTestStruct{
 				TestInt: 1,
 			},
 		},
-		&customTestStruct{
+		{
 			TestKey:   "b",
 			TestValue: "value",
 		},
@@ -352,7 +352,7 @@ func TestInsert(t *testing.T) {
 					TestInt: 1,
 				},
 			},
-			err: client.ErrConflict,
+			err: deta.ErrConflict,
 		},
 	}
 
@@ -380,7 +380,7 @@ func TestDelete(t *testing.T) {
 
 	// put items
 	testItems := []*customTestStruct{
-		&customTestStruct{
+		{
 			TestKey:   "a",
 			TestValue: "value",
 			TestNested: &nestedCustomTestStruct{
@@ -389,7 +389,7 @@ func TestDelete(t *testing.T) {
 				TestBool: true,
 			},
 		},
-		&customTestStruct{
+		{
 			TestKey:   "b",
 			TestValue: "value",
 		},
@@ -425,7 +425,7 @@ func TestDelete(t *testing.T) {
 		}
 		var dest customTestStruct
 		err = base.Get(key, &dest)
-		if !errors.Is(err, client.ErrNotFound) {
+		if !errors.Is(err, deta.ErrNotFound) {
 			t.Errorf("Item with key %s not deleted from database", key)
 		}
 	}
@@ -437,7 +437,7 @@ func TestFetch(t *testing.T) {
 
 	// put items
 	testItems := []*customTestStruct{
-		&customTestStruct{
+		{
 			TestKey:   "a",
 			TestValue: "value",
 			TestNested: &nestedCustomTestStruct{
@@ -446,7 +446,7 @@ func TestFetch(t *testing.T) {
 				TestBool: true,
 			},
 		},
-		&customTestStruct{
+		{
 			TestKey:   "b",
 			TestValue: "value",
 		},
@@ -469,7 +469,7 @@ func TestFetch(t *testing.T) {
 				{"test_nested_struct.test_int?lte": 1},
 			},
 			expectedItems: []customTestStruct{
-				customTestStruct{
+				{
 					TestKey:   "a",
 					TestValue: "value",
 					TestNested: &nestedCustomTestStruct{
@@ -487,7 +487,7 @@ func TestFetch(t *testing.T) {
 				{"test_value": "value"},
 			},
 			expectedItems: []customTestStruct{
-				customTestStruct{
+				{
 					TestKey:   "a",
 					TestValue: "value",
 					TestNested: &nestedCustomTestStruct{
@@ -496,7 +496,7 @@ func TestFetch(t *testing.T) {
 						TestBool: true,
 					},
 				},
-				customTestStruct{
+				{
 					TestKey:   "b",
 					TestValue: "value",
 				},
@@ -526,11 +526,11 @@ func TestFetchPaginated(t *testing.T) {
 
 	// put items
 	testItems := []customTestStruct{
-		customTestStruct{
+		{
 			TestKey:   "a",
 			TestValue: "a",
 		},
-		customTestStruct{
+		{
 			TestKey:   "b",
 			TestValue: "b",
 		},

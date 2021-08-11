@@ -22,7 +22,8 @@ func SetupDrive() *Drive {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	driveName := os.Getenv("DETA_SDK_TEST_DRIVE_NAME")
 	d, _ := deta.New(deta.WithProjectKey(projectKey))
-	return New(d, driveName)
+	drive, _ := New(d, driveName)
+	return drive
 }
 
 func TearDownDrive(d *Drive, t *testing.T) {

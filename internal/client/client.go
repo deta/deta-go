@@ -9,19 +9,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"github.com/deta/deta-go/deta"
 )
 
 var (
-	// ErrBadRequest bad request
-	ErrBadRequest = errors.New("bad request")
-	// ErrUnauthorized aunauthorized
-	ErrUnauthorized = errors.New("unauthorized")
-	// ErrNotFound not found
-	ErrNotFound = errors.New("not found")
-	// ErrConflict conflict
-	ErrConflict = errors.New("conflict")
-	// ErrInternalServerError internal server error
-	ErrInternalServerError = errors.New("internal server error")
 	// internal error
 	// invalid auth type
 	errInvalidAuthType = errors.New("invalid auth type")
@@ -71,19 +62,19 @@ func (c *DetaClient) errorRespToErr(e *errorResp) error {
 
 	switch e.StatusCode {
 	case 400:
-		return fmt.Errorf("%w: %s", ErrBadRequest, errorMsg)
+		return fmt.Errorf("%w: %s", deta.ErrBadRequest, errorMsg)
 	case 401:
 		// does not require wrapping
-		return ErrUnauthorized
+		return deta.ErrUnauthorized
 	case 404:
 		// does not require wrapping
-		return ErrNotFound
+		return deta.ErrNotFound
 	case 409:
-		return fmt.Errorf("%w: %s", ErrConflict, errorMsg)
+		return fmt.Errorf("%w: %s", deta.ErrConflict, errorMsg)
 	default:
 		// default internal server error for other error status codes
 		// does not require wrapping
-		return ErrInternalServerError
+		return deta.ErrInternalServerError
 	}
 }
 

@@ -18,6 +18,10 @@ const (
 )
 
 var (
+	// ErrBadDriveName bad drive name
+	ErrBadDriveName = errors.New("bad drive name")
+	// ErrEmptyDetaInstance empty deta instance
+	ErrEmptyDetaInstance = errors.New("empty deta instance")
 	// ErrEmptyName empty name
 	ErrEmptyName = errors.New("name is empty")
 	// ErrEmptyNames empty names
@@ -32,13 +36,16 @@ var (
 type Drive struct {
 	// deta api client
 	client *client.DetaClient
-
-	// auth info for authenticating requests
-	auth *client.AuthInfo
 }
 
 // NewDrive returns a pointer to new Drive
-func New(d *deta.Deta, driveName string) *Drive {
+func New(d *deta.Deta, driveName string) (*Drive, error) {
+	if d == nil {
+		return nil, ErrEmptyDetaInstance
+	}
+	if driveName == "" {
+		return nil, ErrBadDriveName
+	}
 	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
@@ -54,7 +61,7 @@ func New(d *deta.Deta, driveName string) *Drive {
 			HeaderKey:   "X-API-Key",
 			HeaderValue: projectKey,
 		}),
-	}
+	}, nil
 }
 
 // Get a file from the Drive.

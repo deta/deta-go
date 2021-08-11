@@ -52,12 +52,6 @@ import (
 var (
 	// ErrBadProjectKey bad project key
 	ErrBadProjectKey = errors.New("bad project key")
-	// ErrBadBaseName bad base name
-	ErrBadBaseName = errors.New("bad base name")
-	// ErrBadDriveName bad drive name
-	ErrBadDriveName = errors.New("bad drive name")
-	// ErrInvalidConfig
-	ErrInvalidConfig = errors.New("invalid config arguments")
 )
 
 // Deta is a top-level deta service instance
@@ -65,19 +59,17 @@ type Deta struct {
 	ProjectKey string
 }
 
-type Config struct {
-	ProjectKey string
-}
-type DetaOption func(*Deta)
+type ConfigOption func(*Deta)
 
-func WithProjectKey(projectKey string) DetaOption {
+// Func returns a function that updates the ProjectKey
+func WithProjectKey(projectKey string) ConfigOption {
 	return func(d *Deta) {
 		d.ProjectKey = projectKey
 	}
 }
 
 // New returns a pointer to a new Deta instance
-func New(opts ...DetaOption) (*Deta, error) {
+func New(opts ...ConfigOption) (*Deta, error) {
 	d := &Deta{
 		ProjectKey: os.Getenv("DETA_PROJECT_KEY"),
 	}

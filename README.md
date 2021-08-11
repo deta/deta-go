@@ -34,7 +34,6 @@ go get github.com/aws/deta-go@latest
 ### Base
 #### Put
 ```go
-
 import (
 	"fmt"
 
@@ -57,8 +56,12 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
-
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+		return
+	}
+	
     u := &User{
         Key: "kasdlj1",
         Username: "jimmy",
@@ -115,7 +118,10 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
 
 	// a variable to store the result
 	var u User
@@ -127,7 +133,6 @@ func main() {
 		fmt.Println("Failed to get item:", err)
 	}
 }
-
 ```
 #### Insert
 ```go
@@ -154,7 +159,10 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
 
 	u := &User{
 		Key:      "kasdlj1",
@@ -190,7 +198,10 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
 
 	// delete item
 	// returns a nil error if item was not found
@@ -210,12 +221,12 @@ import (
 	"github.com/deta/deta-go/service/base"
 )
 
-type User struct {
-	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
-	Username string   `json:"username"`
-	Active   bool     `json:"active"`
-	Age      int      `json:"age"`
-	Likes    []string `json:"likes"`
+type User struct{
+    Key string `json:"key"` // json struct tag 'key' used to denote the key
+    Username string `json:"username"`
+    Active bool `json:"active"`
+    Age int `json:"age"`
+    Likes []string `json:"likes"`
 }
 
 func main() {
@@ -225,31 +236,40 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
-	// users
-	u1 := &User{
-		Key:      "kasdlj1",
-		Username: "jimmy",
-		Active:   true,
-		Age:      20,
-		Likes:    []string{"ramen"},
-	}
-	u2 := &User{
-		Key:      "askdjf",
-		Username: "joel",
-		Active:   true,
-		Age:      23,
-		Likes:    []string{"coffee"},
-	}
-	users := []*User{u1, u2}
-
-	// put items in the database
-	keys, err := db.PutMany(users)
+	db, err := base.New(d, "users")
 	if err != nil {
-		fmt.Println("Failed to put items:", err)
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+    u := &User{
+        Key: "kasdlj1",
+        Username: "jimmy",
+        Active: true,
+        Age: 20,
+        Likes: []string{"ramen"},
+    }
+	key, err := db.Put(u)
+	if err != nil {
+		fmt.Println("failed to put item:", err)
 		return
 	}
-	fmt.Println("Successfully put item with keys:", keys)
+	fmt.Println("successfully put item with key", key)
+
+     // can also use a map
+     um := map[string]interface{}{
+        "key": "kasdlj1",
+        "username": "jimmy",
+        "active": true,
+        "age": 20,
+        "likes": []string{"ramen"},
+      }
+  
+      key, err = db.Put(um)
+      if err != nil {
+          fmt.Println("Failed to put item:", err)
+          return
+      }
+      fmt.Println("Successfully put item with key:", key)
 }
 ```
 #### Update
@@ -277,7 +297,11 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
 	// define the updates
 	updates := base.Updates{
 		"age": 33, // set profile.age to 33
@@ -314,7 +338,10 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
 
 	// query to get users with age less than 30
 	query := base.Query{
@@ -358,7 +385,10 @@ func main() {
 		return
 	}
 
-	db := base.New(d, "users")
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
 
 	// query to get users with age less than 30
 	query := base.Query{
@@ -432,8 +462,11 @@ func main() {
 
 	// initialize with drive name
 	// returns ErrBadDriveName if drive name is invalid
-	drawings := drive.New(d, "drawings")
-
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 	// PUT
 	// reading from a local file
 	file, err := os.Open("./art.svg")
@@ -474,7 +507,11 @@ func main() {
 
 	// initialize with drive name
 	// returns ErrBadDriveName if drive name is invalid
-	drawings := drive.New(d, "drawings")
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// GET
 	name := "art.svg"
@@ -515,7 +552,11 @@ func main() {
 
 	// initialize with drive name
 	// returns ErrBadDriveName if drive name is invalid
-	drawings := drive.New(d, "drawings")
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// DELETE
 	name, err := drawings.Delete("art.svg")
@@ -548,7 +589,11 @@ func main() {
 
 	// initialize with drive name
 	// returns ErrBadDriveName if drive name is invalid
-	drawings := drive.New(d, "drawings")
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// LIST
 	lr, err := drawings.List(1000, "", "")

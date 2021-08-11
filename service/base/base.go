@@ -17,6 +17,10 @@ const (
 )
 
 var (
+	// ErrBadBaseName bad base name
+	ErrBadBaseName = errors.New("bad base name")
+	// ErrEmptyDetaInstance empty deta instance
+	ErrEmptyDetaInstance = errors.New("empty deta instance")
 	// ErrTooManyItems too many items
 	ErrTooManyItems = errors.New("too many items")
 	// ErrBadDestination bad destination
@@ -29,9 +33,6 @@ var (
 type Base struct {
 	// deta api client
 	client *client.DetaClient
-
-	// auth info for authenticating requests
-	auth *client.AuthInfo
 
 	// base utilities
 	Util *util
@@ -54,7 +55,13 @@ type Query []map[string]interface{}
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base
-func New(d *deta.Deta, baseName string) *Base {
+func New(d *deta.Deta, baseName string) (*Base, error) {
+	if d == nil {
+		return nil, ErrEmptyDetaInstance
+	}
+	if baseName == ""  {
+		return nil, ErrBadBaseName
+	}
 	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
@@ -71,7 +78,7 @@ func New(d *deta.Deta, baseName string) *Base {
 			HeaderKey:   "X-API-Key",
 			HeaderValue: projectKey,
 		}),
-	}
+	}, nil
 }
 
 func (b *Base) removeEmptyKey(bi baseItem) error {

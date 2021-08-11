@@ -34,23 +34,24 @@ go get github.com/aws/deta-go@latest
 ### Base
 #### Put
 ```go
+
 import (
 	"fmt"
 
-	"github.com/deta/deta-go/deta"
-	"github.com/deta/deta-go/service/base"
+	"drive-sdk/deta"
+	"drive-sdk/service/base"
 )
 
-type User struct{
-    Key string `json:"key"` // json struct tag 'key' used to denote the key
-    Username string `json:"username"`
-    Active bool `json:"active"`
-    Age int `json:"age"`
-    Likes []string `json:"likes"`
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
 }
 
 func main() {
-	d, err := deta.New(deta.WithProjectKey("project_key"))
+	d, err := deta.New(deta.WithProjectKey("b0jt0c3z_1gB1P2zfrMv1Xq1RbGzhHP3TBfh5hw1u "))
 	if err != nil {
 		fmt.Println("failed to init new Deta instance:", err)
 		return
@@ -61,14 +62,14 @@ func main() {
 		fmt.Println("failed to init new Base instance:", err)
 		return
 	}
-	
-    u := &User{
-        Key: "kasdlj1",
-        Username: "jimmy",
-        Active: true,
-        Age: 20,
-        Likes: []string{"ramen"},
-    }
+
+	u := &User{
+		Key:      "kasdlj1",
+		Username: "jimmy",
+		Active:   true,
+		Age:      20,
+		Likes:    []string{"ramen"},
+	}
 	key, err := db.Put(u)
 	if err != nil {
 		fmt.Println("failed to put item:", err)
@@ -76,21 +77,21 @@ func main() {
 	}
 	fmt.Println("successfully put item with key", key)
 
-     // can also use a map
-     um := map[string]interface{}{
-        "key": "kasdlj1",
-        "username": "jimmy",
-        "active": true,
-        "age": 20,
-        "likes": []string{"ramen"},
-      }
-  
-      key, err = db.Put(um)
-      if err != nil {
-          fmt.Println("Failed to put item:", err)
-          return
-      }
-      fmt.Println("Successfully put item with key:", key)
+	// can also use a map
+	um := map[string]interface{}{
+		"key":      "kasdlj1",
+		"username": "jimmy",
+		"active":   true,
+		"age":      20,
+		"likes":    []string{"ramen"},
+	}
+
+	key, err = db.Put(um)
+	if err != nil {
+		fmt.Println("Failed to put item:", err)
+		return
+	}
+	fmt.Println("Successfully put item with key:", key)
 }
 ```
 

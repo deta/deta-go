@@ -100,10 +100,10 @@ func TestModifyItem(t *testing.T) {
 		item interface{}
 		err  error
 	}{
-		{"a string", ErrBadItem},
-		{1, ErrBadItem},
-		{true, ErrBadItem},
-		{[]string{"a", "b"}, ErrBadItem},
+		{"a string", deta.ErrBadItem},
+		{1, deta.ErrBadItem},
+		{true, deta.ErrBadItem},
+		{[]string{"a", "b"}, deta.ErrBadItem},
 	}
 
 	for _, tc := range testStructCases {

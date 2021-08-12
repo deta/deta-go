@@ -2,7 +2,6 @@ package base
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -14,19 +13,6 @@ import (
 
 const (
 	baseEndpoint = "https://database.deta.sh/v1"
-)
-
-var (
-	// ErrBadBaseName bad base name
-	ErrBadBaseName = errors.New("bad base name")
-	// ErrEmptyDetaInstance empty deta instance
-	ErrEmptyDetaInstance = errors.New("empty deta instance")
-	// ErrTooManyItems too many items
-	ErrTooManyItems = errors.New("too many items")
-	// ErrBadDestination bad destination
-	ErrBadDestination = errors.New("bad destination")
-	// ErrBadItem bad item/items
-	ErrBadItem = errors.New("bad item/items")
 )
 
 // Base is a Deta Base service client that offers the API to make requests to Deta Base
@@ -57,10 +43,10 @@ type Updates map[string]interface{}
 // NewBase returns a pointer to a new Base
 func New(d *deta.Deta, baseName string) (*Base, error) {
 	if d == nil {
-		return nil, ErrEmptyDetaInstance
+		return nil, deta.ErrEmptyDetaInstance
 	}
 	if baseName == ""  {
-		return nil, ErrBadBaseName
+		return nil, deta.ErrBadBaseName
 	}
 	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
@@ -93,19 +79,19 @@ func (b *Base) removeEmptyKey(bi baseItem) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("%w: %v", ErrBadItem, "Key is not a string")
+		return fmt.Errorf("%w: %v", deta.ErrBadItem, "Key is not a string")
 	}
 }
 
 func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 	data, err := json.Marshal(item)
 	if err != nil {
-		return nil, ErrBadItem
+		return nil, deta.ErrBadItem
 	}
 	var bi baseItem
 	err = json.Unmarshal(data, &bi)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+		return nil, fmt.Errorf("%w: %s", deta.ErrBadItem, err)
 	}
 	err = b.removeEmptyKey(bi)
 	if err != nil {
@@ -118,12 +104,12 @@ func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 func (b *Base) modifyItems(items interface{}) ([]baseItem, error) {
 	data, err := json.Marshal(items)
 	if err != nil {
-		return nil, ErrBadItem
+		return nil, deta.ErrBadItem
 	}
 	var bi []baseItem
 	err = json.Unmarshal(data, &bi)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+		return nil, fmt.Errorf("%w: %s", deta.ErrBadItem, err)
 	}
 	for _, item := range bi {
 		err = b.removeEmptyKey(item)
@@ -207,7 +193,7 @@ func (b *Base) PutMany(items interface{}) ([]string, error) {
 		return nil, nil
 	}
 	if len(modifiedItems) > 25 {
-		return nil, ErrTooManyItems
+		return nil, deta.ErrTooManyItems
 	}
 	return b.put(modifiedItems)
 }
@@ -226,7 +212,7 @@ func (b *Base) Get(key string, dest interface{}) error {
 	}
 	err = json.Unmarshal(o.Body, &dest)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrBadDestination, err)
+		return fmt.Errorf("%w: %v", deta.ErrBadDestination, err)
 	}
 	return nil
 }
@@ -412,7 +398,7 @@ func (b *Base) Fetch(i *FetchInput) (string, error) {
 	}
 	err = json.Unmarshal(data, &i.Dest)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrBadDestination, err)
+		return "", fmt.Errorf("%w: %v", deta.ErrBadDestination, err)
 	}
 
 	lastKey := ""

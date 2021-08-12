@@ -17,21 +17,6 @@ const (
 	driveEndpoint   = "https://drive.deta.sh/v1"
 )
 
-var (
-	// ErrBadDriveName bad drive name
-	ErrBadDriveName = errors.New("bad drive name")
-	// ErrEmptyDetaInstance empty deta instance
-	ErrEmptyDetaInstance = errors.New("empty deta instance")
-	// ErrEmptyName empty name
-	ErrEmptyName = errors.New("name is empty")
-	// ErrEmptyNames empty names
-	ErrEmptyNames = errors.New("names is empty")
-	// ErrTooManyNames too many names
-	ErrTooManyNames = errors.New("too many names")
-	// ErrEmptyData no data
-	ErrEmptyData = errors.New("no data provided")
-)
-
 // Drive is a Deta Drive service client that offers the API to make requests to Deta Drive
 type Drive struct {
 	// deta api client
@@ -41,10 +26,10 @@ type Drive struct {
 // NewDrive returns a pointer to new Drive
 func New(d *deta.Deta, driveName string) (*Drive, error) {
 	if d == nil {
-		return nil, ErrEmptyDetaInstance
+		return nil, deta.ErrEmptyDetaInstance
 	}
 	if driveName == "" {
-		return nil, ErrBadDriveName
+		return nil, deta.ErrBadDriveName
 	}
 	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
@@ -69,7 +54,7 @@ func New(d *deta.Deta, driveName string) (*Drive, error) {
 // Returns a io.ReadCloser for the file.
 func (d *Drive) Get(name string) (io.ReadCloser, error) {
 	if name == "" {
-		return nil, ErrEmptyName
+		return nil, deta.ErrEmptyName
 	}
 
 	url := "/files/download"
@@ -177,11 +162,11 @@ type PutInput struct {
 // Returns the name of file that was put in the drive.
 func (d *Drive) Put(i *PutInput) (string, error) {
 	if i.Name == "" {
-		return "", ErrEmptyName
+		return "", deta.ErrEmptyName
 	}
 
 	if i.Body == nil {
-		return "", ErrEmptyData
+		return "", deta.ErrEmptyData
 	}
 
 	// start upload
@@ -278,7 +263,7 @@ type DeleteManyOutput struct {
 // Returns a pointer to DeleteManyOutput.
 func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 	if len(names) == 0 {
-		return nil, ErrEmptyNames
+		return nil, deta.ErrEmptyNames
 	}
 
 	if len(names) > 1000 {
@@ -310,7 +295,7 @@ func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 // Returns name of file deleted (even if the file does not exist)
 func (d *Drive) Delete(name string) (string, error) {
 	if name == "" {
-		return "", ErrEmptyName
+		return "", deta.ErrEmptyName
 	}
 	payload := []string{name}
 	dr, err := d.DeleteMany(payload)

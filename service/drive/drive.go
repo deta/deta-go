@@ -1,52 +1,52 @@
-package deta
+package drive
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/internal/client"
 )
 
 const (
 	uploadChunkSize = 1024 * 1024 * 10
-)
-
-var (
-	// ErrEmptyName empty name
-	ErrEmptyName = errors.New("name is empty")
-	// ErrEmptyNames empty names
-	ErrEmptyNames = errors.New("names is empty")
-	// ErrTooManyNames too many names
-	ErrTooManyNames = errors.New("too many names")
-	// ErrEmptyData no data
-	ErrEmptyData = errors.New("no data provided")
+	driveEndpoint   = "https://drive.deta.sh/v1"
 )
 
 // Drive is a Deta Drive service client that offers the API to make requests to Deta Drive
 type Drive struct {
 	// deta api client
-	client *detaClient
-
-	// auth info for authenticating requests
-	auth *authInfo
+	client *client.DetaClient
 }
 
 // NewDrive returns a pointer to new Drive
-func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
+func New(d *deta.Deta, driveName string) (*Drive, error) {
+	if d == nil {
+		return nil, deta.ErrEmptyDetaInstance
+	}
+	if driveName == "" {
+		return nil, deta.ErrBadDriveName
+	}
+	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
-	// root endpoint for the base
-	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, driveName)
-
-	return &Drive{
-		client: newDetaClient(rootEndpoint, &authInfo{
-			authType:    "api-key",
-			headerKey:   "X-API-Key",
-			headerValue: projectKey,
-		}),
+	rootEndpoint := os.Getenv("DETA_DRIVE_ROOT_ENDPOINT")
+	if rootEndpoint == "" {
+		rootEndpoint = driveEndpoint
 	}
+	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, driveName)
+	return &Drive{
+		client: client.NewDetaClient(rootEndpoint, &client.AuthInfo{
+			AuthType:    "api-key",
+			HeaderKey:   "X-API-Key",
+			HeaderValue: projectKey,
+		}),
+	}, nil
 }
 
 // Get a file from the Drive.
@@ -54,12 +54,12 @@ func newDrive(projectKey, driveName, rootEndpoint string) *Drive {
 // Returns a io.ReadCloser for the file.
 func (d *Drive) Get(name string) (io.ReadCloser, error) {
 	if name == "" {
-		return nil, ErrEmptyName
+		return nil, deta.ErrEmptyName
 	}
 
 	url := "/files/download"
 	queryParams := map[string]string{"name": name}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:             url,
 		QueryParams:      queryParams,
 		Method:           "GET",
@@ -86,7 +86,7 @@ type startUploadResponse struct {
 func (d *Drive) startUpload(name string) (string, error) {
 	url := "/uploads"
 	queryParams := map[string]string{"name": name}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "POST",
@@ -108,7 +108,7 @@ func (d *Drive) startUpload(name string) (string, error) {
 func (d *Drive) finishUpload(name, uploadId string) error {
 	url := fmt.Sprintf("/uploads/%s", uploadId)
 	queryParams := map[string]string{"name": name}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "PATCH",
@@ -120,7 +120,7 @@ func (d *Drive) finishUpload(name, uploadId string) error {
 func (d *Drive) abortUpload(name, uploadId string) error {
 	url := fmt.Sprintf("/uploads/%s", uploadId)
 	queryParams := map[string]string{"name": name}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "DELETE",
@@ -132,7 +132,7 @@ func (d *Drive) abortUpload(name, uploadId string) error {
 func (d *Drive) uploadPart(name string, chunk []byte, uploadId string, part int, contentType string) error {
 	url := fmt.Sprintf("/uploads/%s/parts", uploadId)
 	queryParams := map[string]string{"name": name, "part": fmt.Sprintf("%d", part)}
-	_, err := d.client.request(&requestInput{
+	_, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "POST",
@@ -162,11 +162,11 @@ type PutInput struct {
 // Returns the name of file that was put in the drive.
 func (d *Drive) Put(i *PutInput) (string, error) {
 	if i.Name == "" {
-		return "", ErrEmptyName
+		return "", deta.ErrEmptyName
 	}
 
 	if i.Body == nil {
-		return "", ErrEmptyData
+		return "", deta.ErrEmptyData
 	}
 
 	// start upload
@@ -200,6 +200,11 @@ func (d *Drive) Put(i *PutInput) (string, error) {
 	}
 }
 
+type paging struct {
+	Size int     `json:"size"`
+	Last *string `json:"last"`
+}
+
 // ListOutput output for List operation.
 type ListOutput struct {
 	// Pagination information
@@ -222,7 +227,7 @@ func (d *Drive) List(limit int, prefix, last string) (*ListOutput, error) {
 	if last != "" {
 		queryParams["last"] = last
 	}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:        url,
 		QueryParams: queryParams,
 		Method:      "GET",
@@ -258,13 +263,13 @@ type DeleteManyOutput struct {
 // Returns a pointer to DeleteManyOutput.
 func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 	if len(names) == 0 {
-		return nil, ErrEmptyNames
+		return nil, deta.ErrEmptyNames
 	}
 
 	if len(names) > 1000 {
 		return nil, errors.New("more than 1000 files to delete")
 	}
-	o, err := d.client.request(&requestInput{
+	o, err := d.client.Request(&client.RequestInput{
 		Path:   "/files",
 		Method: "DELETE",
 		Body: &deleteManyRequest{
@@ -290,7 +295,7 @@ func (d *Drive) DeleteMany(names []string) (*DeleteManyOutput, error) {
 // Returns name of file deleted (even if the file does not exist)
 func (d *Drive) Delete(name string) (string, error) {
 	if name == "" {
-		return "", ErrEmptyName
+		return "", deta.ErrEmptyName
 	}
 	payload := []string{name}
 	dr, err := d.DeleteMany(payload)

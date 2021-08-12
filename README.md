@@ -32,38 +32,43 @@ go get github.com/aws/deta-go@latest
 ## Examples
 
 ### Base
-
+#### Put
 ```go
-package main
 
 import (
 	"fmt"
-	"github.com/deta/deta-go"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
 )
 
 type User struct {
-	Key string `json:"key"` // json struct tag key to denote the key
-	Username string `json:"username"`
-	Email string `json:"email"`
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
 }
 
-func main(){
-	d, err := deta.New("project_key")
-	if err != nil{
-		fmt.Println("failed to init a new Deta instance:", err)
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
 		return
 	}
 
-	db, err := d.NewBase("base_name")
-	if err != nil{
-		fmt.Println("failed to init a new Base instance:", err)
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
 		return
 	}
 
 	u := &User{
-		Key: "abasd",
+		Key:      "kasdlj1",
 		Username: "jimmy",
-		Email: "jimmy@deta.sh",
+		Active:   true,
+		Age:      20,
+		Likes:    []string{"ramen"},
 	}
 	key, err := db.Put(u)
 	if err != nil {
@@ -71,24 +76,386 @@ func main(){
 		return
 	}
 	fmt.Println("successfully put item with key", key)
+
+	// can also use a map
+	um := map[string]interface{}{
+		"key":      "kasdlj1",
+		"username": "jimmy",
+		"active":   true,
+		"age":      20,
+		"likes":    []string{"ramen"},
+	}
+
+	key, err = db.Put(um)
+	if err != nil {
+		fmt.Println("Failed to put item:", err)
+		return
+	}
+	fmt.Println("Successfully put item with key:", key)
 }
 ```
 
-More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
-
-### Drive
+#### Get
 ```go
-package main
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	// a variable to store the result
+	var u User
+
+	// get item
+	// returns ErrNotFound if no item was found
+	err = db.Get("kasdlj1", &u)
+	if err != nil {
+		fmt.Println("Failed to get item:", err)
+	}
+}
+```
+#### Insert
+```go
 
 import (
 	"fmt"
-	"github.com/deta/deta-go"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	u := &User{
+		Key:      "kasdlj1",
+		Username: "jimmy",
+		Active:   true,
+		Age:      20,
+		Likes:    []string{"ramen"},
+	}
+
+	// insert item in the database
+	key, err := db.Insert(u)
+	if err != nil {
+		fmt.Println("Failed to insert item:", err)
+		return
+	}
+	fmt.Println("Successfully inserted item with key:", key)
+}
+
+```
+#### Delete
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
 )
 
 func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	// delete item
+	// returns a nil error if item was not found
+	err = db.Delete("dakjkfa")
+	if err != nil {
+		fmt.Println("Failed to delete item:", err)
+	}
+}
+
+```
+#### Put Many
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	u := &User{
+		Key:      "kasdlj1",
+		Username: "jimmy",
+		Active:   true,
+		Age:      20,
+		Likes:    []string{"ramen"},
+	}
+	key, err := db.Put(u)
+	if err != nil {
+		fmt.Println("failed to put item:", err)
+		return
+	}
+	fmt.Println("successfully put item with key", key)
+
+	// can also use a map
+	um := map[string]interface{}{
+		"key":      "kasdlj1",
+		"username": "jimmy",
+		"active":   true,
+		"age":      20,
+		"likes":    []string{"ramen"},
+	}
+
+	key, err = db.Put(um)
+	if err != nil {
+		fmt.Println("Failed to put item:", err)
+		return
+	}
+	fmt.Println("Successfully put item with key:", key)
+}
+```
+#### Update
+```go
+
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	// define the updates
+	updates := base.Updates{
+		"age": 33, // set profile.age to 33
+	}
+	// update
+	err = db.Update("kasdlj1", updates)
+	if err != nil {
+		fmt.Println("failed to update")
+		return
+	}
+}
+```
+#### Fetch 
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	// query to get users with age less than 30
+	query := base.Query{
+		{"age?lt": 30},
+	}
+
+	// variabe to store the results
+	var results []*User
+
+	// fetch items
+	_, err = db.Fetch(&base.FetchInput{
+		Q:    query,
+		Dest: &results,
+	})
+	if err != nil {
+		fmt.Println("failed to fetch items:", err)
+	}
+}
+```
+#### Fetch Paginated
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/base"
+)
+
+type User struct {
+	Key      string   `json:"key"` // json struct tag 'key' used to denote the key
+	Username string   `json:"username"`
+	Active   bool     `json:"active"`
+	Age      int      `json:"age"`
+	Likes    []string `json:"likes"`
+}
+
+func main() {
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	db, err := base.New(d, "users")
+	if err != nil {
+		fmt.Println("failed to init new Base instance:", err)
+	}
+
+	// query to get users with age less than 30
+	query := base.Query{
+		{"age?lt": 30},
+	}
+
+	// variabe to store the results
+	var results []*User
+
+	// variable to store the page
+	var page []*User
+
+	// fetch input
+	i := &base.FetchInput{
+		Q:     query,
+		Dest:  &page,
+		Limit: 1, // limit provided so each page will only have one item
+	}
+
+	// fetch items
+	lastKey, err := db.Fetch(i)
+	if err != nil {
+		fmt.Println("failed to fetch items:", err)
+		return
+	}
+
+	// append page items to results
+	results = append(results, page...)
+
+	// get all pages
+	for lastKey != "" {
+		// provide the last key in the fetch input
+		i.LastKey = lastKey
+
+		// fetch
+		lastKey, err = db.Fetch(i)
+		if err != nil {
+			fmt.Println("failed to fetch items:", err)
+			return
+		}
+
+		// append page items to all results
+		results = append(results, page...)
+	}
+}
+```
+More examples and complete documentation on https://docs.deta.sh/docs/base/sdk
+
+### Drive
+
+#### Put
+```go
+import (
+	"bufio"
+	"fmt"
+	"os"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
+)
+
+func main() {
+
 	// initialize with project key
 	// returns ErrBadProjectKey if project key is invalid
-	d, err := deta.New("project_key")
+	d, err := deta.New(deta.WithProjectKey("project_key"))
 	if err != nil {
 		fmt.Println("failed to init new Deta instance:", err)
 		return
@@ -96,18 +463,17 @@ func main() {
 
 	// initialize with drive name
 	// returns ErrBadDriveName if drive name is invalid
-	drive, err := d.NewDrive("drive_name")
+	drawings, err := drive.New(d, "drawings")
 	if err != nil {
 		fmt.Println("failed to init new Drive instance:", err)
-		return
+		return 
 	}
-
 	// PUT
 	// reading from a local file
 	file, err := os.Open("./art.svg")
 	defer file.Close()
 
-	name, err = drive.Put(&deta.PutInput{
+	name, err := drawings.Put(&drive.PutInput{
 		Name:        "art.svg",
 		Body:        bufio.NewReader(file),
 		ContentType: "image/svg+xml",
@@ -117,10 +483,40 @@ func main() {
 		return
 	}
 	fmt.Println("Successfully put file with name:", name)
+}
+```
+
+#### Get
+```go
+import (
+	"fmt"
+	"io/ioutil"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
+)
+
+func main() {
+
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// GET
-	name := "hello.txt"
-	f, err := drive.Get(name)
+	name := "art.svg"
+	f, err := drawings.Get(name)
 	if err != nil {
 		fmt.Println("Failed to get file with name:", name)
 		return
@@ -133,17 +529,75 @@ func main() {
 		return
 	}
 	fmt.Println("file content:", string(c))
+}
+```
+
+#### Delete
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
+)
+
+func main() {
+
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// DELETE
-	name, err := d.Delete("hello.txt")
+	name, err := drawings.Delete("art.svg")
 	if err != nil {
 		fmt.Println("Failed to delete file with name:", name)
 		return
 	}
 	fmt.Println("Successfully deleted file with name:", name)
+}
+```
+
+#### List
+```go
+import (
+	"fmt"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/service/drive"
+)
+
+func main() {
+
+	// initialize with project key
+	// returns ErrBadProjectKey if project key is invalid
+	d, err := deta.New(deta.WithProjectKey("project_key"))
+	if err != nil {
+		fmt.Println("failed to init new Deta instance:", err)
+		return
+	}
+
+	// initialize with drive name
+	// returns ErrBadDriveName if drive name is invalid
+	drawings, err := drive.New(d, "drawings")
+	if err != nil {
+		fmt.Println("failed to init new Drive instance:", err)
+		return 
+	}
 
 	// LIST
-	lr, err := drive.List(1000, "", "")
+	lr, err := drawings.List(1000, "", "")
 	if err != nil {
 		fmt.Println("Failed to list names from drive with err:", err)
 	}

@@ -1,4 +1,4 @@
-package deta
+package client
 
 import (
 	"bytes"
@@ -9,50 +9,41 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"github.com/deta/deta-go/deta"
 )
 
 var (
-	// ErrBadRequest bad request
-	ErrBadRequest = errors.New("bad request")
-	// ErrUnauthorized aunauthorized
-	ErrUnauthorized = errors.New("unauthorized")
-	// ErrNotFound not found
-	ErrNotFound = errors.New("not found")
-	// ErrConflict conflict
-	ErrConflict = errors.New("conflict")
-	// ErrInternalServerError internal server error
-	ErrInternalServerError = errors.New("internal server error")
 	// internal error
 	// invalid auth type
 	errInvalidAuthType = errors.New("invalid auth type")
 )
 
 // auth info for requests
-type authInfo struct {
-	authType    string // auth type
-	headerKey   string // header key
-	headerValue string // header value
+type AuthInfo struct {
+	AuthType    string // auth type
+	HeaderKey   string // header key
+	HeaderValue string // header value
 }
 
 // client that talks with deta apis
-type detaClient struct {
-	rootEndpoint string
-	client       *http.Client
-	authInfo     *authInfo
+type DetaClient struct {
+	RootEndpoint string
+	Client       *http.Client
+	AuthInfo     *AuthInfo
 }
 
 // returns a pointer to a new deta client
-func newDetaClient(rootEndpoint string, ai *authInfo) *detaClient {
+func NewDetaClient(rootEndpoint string, ai *AuthInfo) *DetaClient {
 	// only api keys auth for now
 	/*
 		if i.Auth.Type != "api-key" {
 			return nil, errInvalidAuthType
 		}
 	*/
-	return &detaClient{
-		rootEndpoint: rootEndpoint,
-		authInfo:     ai,
-		client:       &http.Client{},
+	return &DetaClient{
+		RootEndpoint: rootEndpoint,
+		AuthInfo:     ai,
+		Client:       &http.Client{},
 	}
 }
 
@@ -63,7 +54,7 @@ type errorResp struct {
 }
 
 // returns appropriate errors from the error response
-func (c *detaClient) errorRespToErr(e *errorResp) error {
+func (c *DetaClient) errorRespToErr(e *errorResp) error {
 	var errorMsg string
 	if len(e.Errors) >= 1 {
 		errorMsg = e.Errors[0]
@@ -71,24 +62,24 @@ func (c *detaClient) errorRespToErr(e *errorResp) error {
 
 	switch e.StatusCode {
 	case 400:
-		return fmt.Errorf("%w: %s", ErrBadRequest, errorMsg)
+		return fmt.Errorf("%w: %s", deta.ErrBadRequest, errorMsg)
 	case 401:
 		// does not require wrapping
-		return ErrUnauthorized
+		return deta.ErrUnauthorized
 	case 404:
 		// does not require wrapping
-		return ErrNotFound
+		return deta.ErrNotFound
 	case 409:
-		return fmt.Errorf("%w: %s", ErrConflict, errorMsg)
+		return fmt.Errorf("%w: %s", deta.ErrConflict, errorMsg)
 	default:
 		// default internal server error for other error status codes
 		// does not require wrapping
-		return ErrInternalServerError
+		return deta.ErrInternalServerError
 	}
 }
 
 // input to request method
-type requestInput struct {
+type RequestInput struct {
 	Path             string
 	Method           string
 	Headers          map[string]string
@@ -100,7 +91,7 @@ type requestInput struct {
 }
 
 // output of request function
-type requestOutput struct {
+type RequestOutput struct {
 	Status         int
 	Body           []byte
 	BodyReadCloser io.ReadCloser
@@ -108,7 +99,7 @@ type requestOutput struct {
 	Error          *errorResp
 }
 
-func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
+func (c *DetaClient) Request(i *RequestInput) (*RequestOutput, error) {
 	marshalled := []byte("")
 	if i.Body != nil {
 		// set default content-type to application/json
@@ -126,7 +117,7 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 		marshalled = i.RawBody
 	}
 
-	url := fmt.Sprintf("%s%s", c.rootEndpoint, i.Path)
+	url := fmt.Sprintf("%s%s", c.RootEndpoint, i.Path)
 	req, err := http.NewRequest(i.Method, url, bytes.NewBuffer(marshalled))
 	if err != nil {
 		return nil, err
@@ -141,9 +132,9 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 	}
 
 	// auth
-	if c.authInfo != nil {
+	if c.AuthInfo != nil {
 		// set auth value in specified header key in the request headers
-		req.Header.Set(c.authInfo.headerKey, c.authInfo.headerValue)
+		req.Header.Set(c.AuthInfo.HeaderKey, c.AuthInfo.HeaderValue)
 	}
 
 	// query params
@@ -154,13 +145,13 @@ func (c *detaClient) request(i *requestInput) (*requestOutput, error) {
 	req.URL.RawQuery = q.Encode()
 
 	// send the request
-	res, err := c.client.Do(req)
+	res, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	// request output
-	o := &requestOutput{
+	o := &RequestOutput{
 		Status: res.StatusCode,
 		Header: res.Header,
 	}

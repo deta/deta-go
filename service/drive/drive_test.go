@@ -1,15 +1,17 @@
-package deta
+package drive
 
 import (
 	"bytes"
-	"math/rand"
 	"errors"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/deta/deta-go/deta"
 )
 
 const (
@@ -19,8 +21,9 @@ const (
 func SetupDrive() *Drive {
 	projectKey := os.Getenv("DETA_SDK_TEST_PROJECT_KEY")
 	driveName := os.Getenv("DETA_SDK_TEST_DRIVE_NAME")
-	rootEndpoint := os.Getenv("DETA_SDK_TEST_DRIVE_ENDPOINT")
-	return newDrive(projectKey, driveName, rootEndpoint)
+	d, _ := deta.New(deta.WithProjectKey(projectKey))
+	drive, _ := New(d, driveName)
+	return drive
 }
 
 func TearDownDrive(d *Drive, t *testing.T) {

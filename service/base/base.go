@@ -1,29 +1,24 @@
-package deta
+package base
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
+
+	"github.com/deta/deta-go/deta"
+	"github.com/deta/deta-go/internal/client"
 )
 
-var (
-	// ErrTooManyItems too many items
-	ErrTooManyItems = errors.New("too many items")
-	// ErrBadDestination bad destination
-	ErrBadDestination = errors.New("bad destination")
-	// ErrBadItem bad item/items
-	ErrBadItem = errors.New("bad item/items")
+const (
+	baseEndpoint = "https://database.deta.sh/v1"
 )
 
 // Base is a Deta Base service client that offers the API to make requests to Deta Base
 type Base struct {
 	// deta api client
-	client *detaClient
-
-	// auth info for authenticating requests
-	auth *authInfo
+	client *client.DetaClient
 
 	// base utilities
 	Util *util
@@ -46,20 +41,30 @@ type Query []map[string]interface{}
 type Updates map[string]interface{}
 
 // NewBase returns a pointer to a new Base
-func newBase(projectKey, baseName, rootEndpoint string) *Base {
+func New(d *deta.Deta, baseName string) (*Base, error) {
+	if d == nil {
+		return nil, deta.ErrEmptyDetaInstance
+	}
+	if baseName == ""  {
+		return nil, deta.ErrBadBaseName
+	}
+	projectKey := d.ProjectKey
 	parts := strings.Split(projectKey, "_")
 	projectID := parts[0]
 
-	// root endpoint for the base
+	rootEndpoint := os.Getenv("DETA_BASE_ROOT_ENDPOINT")
+	if rootEndpoint == "" {
+		rootEndpoint = baseEndpoint
+	}
 	rootEndpoint = fmt.Sprintf("%s/%s/%s", rootEndpoint, projectID, baseName)
 
 	return &Base{
-		client: newDetaClient(rootEndpoint, &authInfo{
-			authType:    "api-key",
-			headerKey:   "X-API-Key",
-			headerValue: projectKey,
+		client: client.NewDetaClient(rootEndpoint, &client.AuthInfo{
+			AuthType:    "api-key",
+			HeaderKey:   "X-API-Key",
+			HeaderValue: projectKey,
 		}),
-	}
+	}, nil
 }
 
 func (b *Base) removeEmptyKey(bi baseItem) error {
@@ -74,19 +79,19 @@ func (b *Base) removeEmptyKey(bi baseItem) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("%w: %v", ErrBadItem, "Key is not a string")
+		return fmt.Errorf("%w: %v", deta.ErrBadItem, "Key is not a string")
 	}
 }
 
 func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 	data, err := json.Marshal(item)
 	if err != nil {
-		return nil, ErrBadItem
+		return nil, deta.ErrBadItem
 	}
 	var bi baseItem
 	err = json.Unmarshal(data, &bi)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+		return nil, fmt.Errorf("%w: %s", deta.ErrBadItem, err)
 	}
 	err = b.removeEmptyKey(bi)
 	if err != nil {
@@ -99,12 +104,12 @@ func (b *Base) modifyItem(item interface{}) (baseItem, error) {
 func (b *Base) modifyItems(items interface{}) ([]baseItem, error) {
 	data, err := json.Marshal(items)
 	if err != nil {
-		return nil, ErrBadItem
+		return nil, deta.ErrBadItem
 	}
 	var bi []baseItem
 	err = json.Unmarshal(data, &bi)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrBadItem, err)
+		return nil, fmt.Errorf("%w: %s", deta.ErrBadItem, err)
 	}
 	for _, item := range bi {
 		err = b.removeEmptyKey(item)
@@ -124,7 +129,7 @@ func (b *Base) put(items []baseItem) ([]string, error) {
 	body := map[string]interface{}{
 		"items": items,
 	}
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   "/items",
 		Method: "PUT",
 		Body:   body,
@@ -188,7 +193,7 @@ func (b *Base) PutMany(items interface{}) ([]string, error) {
 		return nil, nil
 	}
 	if len(modifiedItems) > 25 {
-		return nil, ErrTooManyItems
+		return nil, deta.ErrTooManyItems
 	}
 	return b.put(modifiedItems)
 }
@@ -198,7 +203,7 @@ func (b *Base) PutMany(items interface{}) ([]string, error) {
 // The item is scanned onto `dest`.
 func (b *Base) Get(key string, dest interface{}) error {
 	escapedKey := url.PathEscape(key)
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "GET",
 	})
@@ -207,7 +212,7 @@ func (b *Base) Get(key string, dest interface{}) error {
 	}
 	err = json.Unmarshal(o.Body, &dest)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrBadDestination, err)
+		return fmt.Errorf("%w: %v", deta.ErrBadDestination, err)
 	}
 	return nil
 }
@@ -230,7 +235,7 @@ func (b *Base) Insert(item interface{}) (string, error) {
 		Item: modifiedItem,
 	}
 
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   "/items",
 		Method: "POST",
 		Body:   ir,
@@ -290,7 +295,7 @@ func (b *Base) Update(key string, updates Updates) error {
 	escapedKey := url.PathEscape(key)
 
 	ur := b.updatesToUpdateRequest(updates)
-	_, err := b.client.request(&requestInput{
+	_, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "PATCH",
 		Body:   ur,
@@ -308,7 +313,7 @@ func (b *Base) Delete(key string) error {
 	// escape the key
 	escapedKey := url.PathEscape(key)
 
-	_, err := b.client.request(&requestInput{
+	_, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/items/%s", escapedKey),
 		Method: "DELETE",
 	})
@@ -335,7 +340,7 @@ type fetchResponse struct {
 }
 
 func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
-	o, err := b.client.request(&requestInput{
+	o, err := b.client.Request(&client.RequestInput{
 		Path:   fmt.Sprintf("/query"),
 		Method: "POST",
 		Body:   req,
@@ -393,7 +398,7 @@ func (b *Base) Fetch(i *FetchInput) (string, error) {
 	}
 	err = json.Unmarshal(data, &i.Dest)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrBadDestination, err)
+		return "", fmt.Errorf("%w: %v", deta.ErrBadDestination, err)
 	}
 
 	lastKey := ""

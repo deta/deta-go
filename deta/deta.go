@@ -44,14 +44,8 @@ More examples on https://docs.deta.sh/docs/base/sdk
 package deta
 
 import (
-	"errors"
 	"os"
 	"strings"
-)
-
-var (
-	// ErrBadProjectKey bad project key
-	ErrBadProjectKey = errors.New("bad project key")
 )
 
 // Deta is a top-level deta service instance

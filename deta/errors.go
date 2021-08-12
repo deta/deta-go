@@ -5,6 +5,9 @@ import (
 )
 
 var (
+	// ErrBadProjectKey bad project key
+	ErrBadProjectKey = errors.New("bad project key")
+	
 	// ErrBadRequest bad request
 	ErrBadRequest = errors.New("bad request")
 	// ErrUnauthorized aunauthorized

@@ -1,3 +1,4 @@
+// Package base is the Deta Base service package.
 package base
 
 import (
@@ -40,12 +41,12 @@ type Query []map[string]interface{}
 // Updates is a datatype to provide updates to an item in an Update operation
 type Updates map[string]interface{}
 
-// NewBase returns a pointer to a new Base
+// New returns a pointer to a new Base
 func New(d *deta.Deta, baseName string) (*Base, error) {
 	if d == nil {
 		return nil, deta.ErrEmptyDetaInstance
 	}
-	if baseName == ""  {
+	if baseName == "" {
 		return nil, deta.ErrBadBaseName
 	}
 	projectKey := d.ProjectKey
@@ -271,15 +272,15 @@ func (b *Base) updatesToUpdateRequest(updates Updates) *updateRequest {
 		Trim:      make([]string, 0),
 	}
 	for k, v := range updates {
-		switch v.(type) {
+		switch val := v.(type) {
 		case *trimUtil:
 			updateReq.Trim = append(updateReq.Trim, k)
 		case *appendUtil:
-			updateReq.Append[k] = v.(*appendUtil).value
+			updateReq.Append[k] = val.value
 		case *prependUtil:
-			updateReq.Prepend[k] = v.(*prependUtil).value
+			updateReq.Prepend[k] = val.value
 		case *incrementUtil:
-			updateReq.Increment[k] = v.(*incrementUtil).value
+			updateReq.Increment[k] = val.value
 		default:
 			updateReq.Set[k] = v
 		}
@@ -341,7 +342,7 @@ type fetchResponse struct {
 
 func (b *Base) fetch(req *fetchRequest) (*fetchResponse, error) {
 	o, err := b.client.Request(&client.RequestInput{
-		Path:   fmt.Sprintf("/query"),
+		Path:   "/query",
 		Method: "POST",
 		Body:   req,
 	})

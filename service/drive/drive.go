@@ -1,3 +1,4 @@
+// Package drive is the Deta Drive service package.
 package drive
 
 import (
@@ -23,7 +24,7 @@ type Drive struct {
 	client *client.DetaClient
 }
 
-// NewDrive returns a pointer to new Drive
+// New returns a pointer to new Drive
 func New(d *deta.Deta, driveName string) (*Drive, error) {
 	if d == nil {
 		return nil, deta.ErrEmptyDetaInstance

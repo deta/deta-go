@@ -1,4 +1,3 @@
-// Package base is the Deta Base service package.
 package base
 
 import (

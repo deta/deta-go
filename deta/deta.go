@@ -1,4 +1,3 @@
-// Package deta is the core Deta SDK package.
 package deta
 
 import (

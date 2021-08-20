@@ -1,38 +1,35 @@
+// Package client provides an internal Deta client
+//
+// This is an internal package and should not be used by SDK users.
 package client
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
 	"github.com/deta/deta-go/deta"
 )
 
-var (
-	// internal error
-	// invalid auth type
-	errInvalidAuthType = errors.New("invalid auth type")
-)
-
-// auth info for requests
+// AuthInfo for requests
 type AuthInfo struct {
 	AuthType    string // auth type
 	HeaderKey   string // header key
 	HeaderValue string // header value
 }
 
-// client that talks with deta apis
+// DetaClient talks to Deta APIs
 type DetaClient struct {
 	RootEndpoint string
 	Client       *http.Client
 	AuthInfo     *AuthInfo
 }
 
-// returns a pointer to a new deta client
+// NewDetaClient returns a pointer to a new deta client
 func NewDetaClient(rootEndpoint string, ai *AuthInfo) *DetaClient {
 	// only api keys auth for now
 	/*
@@ -78,7 +75,7 @@ func (c *DetaClient) errorRespToErr(e *errorResp) error {
 	}
 }
 
-// input to request method
+// RequestInput to Request method
 type RequestInput struct {
 	Path             string
 	Method           string
@@ -90,7 +87,7 @@ type RequestInput struct {
 	ReturnReadCloser bool
 }
 
-// output of request function
+// RequestOutput of Request method
 type RequestOutput struct {
 	Status         int
 	Body           []byte
@@ -99,6 +96,7 @@ type RequestOutput struct {
 	Error          *errorResp
 }
 
+// Request constructs and sends the request
 func (c *DetaClient) Request(i *RequestInput) (*RequestOutput, error) {
 	marshalled := []byte("")
 	if i.Body != nil {

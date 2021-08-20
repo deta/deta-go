@@ -1,46 +1,3 @@
-/*
-Package deta is the official Deta SDK for Go
-
-Example:
-	package main
-
-	import (
-		"fmt"
-
-		"github.com/deta/deta-go/deta"
-		"github.com/deta/deta-go/service/base"
-	)
-
-	type User struct {
-		Key      string `json:"key"` // json struct tag key to denote the key
-		Username string `json:"username"`
-		Email    string `json:"email"`
-	}
-
-	func main() {
-		d, err := deta.New(deta.WithProjectKey("project_key"))
-		if err != nil {
-			fmt.Println("failed to init new Deta instance:", err)
-			return
-		}
-
-		db := base.New(d, "users")
-
-		u := &User{
-			Key:      "abasd",
-			Username: "jimmy",
-			Email:    "jimmy@deta.sh",
-		}
-		key, err := db.Put(u)
-		if err != nil {
-			fmt.Println("failed to put item:", err)
-			return
-		}
-		fmt.Println("successfully put item with key", key)
-	}
-
-More examples on https://docs.deta.sh/docs/base/sdk
-*/
 package deta
 
 import (
@@ -48,14 +5,15 @@ import (
 	"strings"
 )
 
-// Deta is a top-level deta service instance
+// Deta is the top-level Deta service instance
 type Deta struct {
-	ProjectKey string
+	ProjectKey string // deta project key
 }
 
+// ConfigOption is a functional config option for Deta
 type ConfigOption func(*Deta)
 
-// Func returns a function that updates the ProjectKey
+// WithProjectKey config option for setting the project key for Deta
 func WithProjectKey(projectKey string) ConfigOption {
 	return func(d *Deta) {
 		d.ProjectKey = projectKey

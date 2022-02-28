@@ -3,7 +3,7 @@ Package sdk is the official Deta SDK for Go.
 
 SDK Packages
 
-The SDK constitutes of two main components, the core package and service packages.
+The SDK consists of two main components, the core package and service packages.
 
 deta - The core SDK package, provides shared functionalities to the service packages. All the errors are also exported from this package.
 

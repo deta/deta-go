@@ -30,10 +30,12 @@ type baseItem map[string]interface{}
 // Query is a datatype to provide a query to a Fetch operation.
 //
 // Items in the query are ORed.
-//		q := Query{
-//			{"active": true},
-//			{"age?lt": 32},
-//		}
+//
+//	q := Query{
+//		{"active": true},
+//		{"age?lt": 32},
+//	}
+//
 // The example above fetches items where 'active' is true OR 'age' is less than 32.
 type Query []map[string]interface{}
 
@@ -332,6 +334,7 @@ type fetchRequest struct {
 	Query Query   `json:"query"`
 	Last  *string `json:"last,omitempty"`
 	Limit *int    `json:"limit,omitempty"`
+	Sort  *string `json:"sort,omitempty"`
 }
 
 type fetchResponse struct {
@@ -369,6 +372,8 @@ type FetchInput struct {
 	// the last key evaluated in a paginated response
 	// leave empty if not a subsequent fetch request
 	LastKey string
+	// the order for fetching the items can be either `desc` or `asc` 
+	Sort string
 }
 
 // Fetch items from the database.
@@ -385,6 +390,10 @@ func (b *Base) Fetch(i *FetchInput) (string, error) {
 
 	if i.LastKey != "" {
 		req.Last = &i.LastKey
+	}
+
+	if i.Sort != "" {
+		req.Sort = &i.Sort
 	}
 
 	res, err := b.fetch(req)

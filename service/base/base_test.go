@@ -575,3 +575,50 @@ func TestFetchPaginated(t *testing.T) {
 		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", testItems[1], dest[0])
 	}
 }
+
+func TestFetchDesc(t *testing.T) {
+	base := Setup()
+	defer TearDown(base, t)
+
+	// put items
+	testItems := []customTestStruct{
+		{
+			TestKey:   "a",
+			TestValue: "a",
+		},
+		{
+			TestKey:   "b",
+			TestValue: "b",
+		},
+	}
+
+	revtestItems := []customTestStruct{
+		{
+			TestKey:   "b",
+			TestValue: "b",
+		},
+		{
+			TestKey:   "a",
+			TestValue: "a",
+		},
+	}
+
+	_, err := base.PutMany(testItems)
+	if err != nil {
+		t.Fatalf("Failed to put items with error %v", err)
+	}
+
+	var dest []customTestStruct
+	_, err = base.Fetch(&FetchInput{
+		Q:    nil,
+		Dest: &dest,
+		Sort: "desc",
+	})
+	if err != nil {
+		t.Fatalf("Failed to fetch items with err %v", err)
+	}
+
+	if !reflect.DeepEqual(revtestItems, dest) {
+		t.Errorf("Fetched item not equal to expected.\nExpected:\n%v\nGot: %v", revtestItems, dest)
+	}
+}

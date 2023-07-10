@@ -612,7 +612,7 @@ func TestFetchDesc(t *testing.T) {
 	_, err = base.Fetch(&FetchInput{
 		Q:    nil,
 		Dest: &dest,
-		Sort: "desc",
+		Desc: true,
 	})
 	if err != nil {
 		t.Fatalf("Failed to fetch items with err %v", err)

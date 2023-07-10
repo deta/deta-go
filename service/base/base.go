@@ -372,8 +372,8 @@ type FetchInput struct {
 	// the last key evaluated in a paginated response
 	// leave empty if not a subsequent fetch request
 	LastKey string
-	// the order for fetching the items can be either `desc` or `asc` 
-	Sort string
+	// descending order
+	Desc bool
 }
 
 // Fetch items from the database.
@@ -392,8 +392,9 @@ func (b *Base) Fetch(i *FetchInput) (string, error) {
 		req.Last = &i.LastKey
 	}
 
-	if i.Sort != "" {
-		req.Sort = &i.Sort
+	if i.Desc {
+		desc := "desc"
+		req.Sort = &desc
 	}
 
 	res, err := b.fetch(req)

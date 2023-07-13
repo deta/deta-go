@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          - go-version: stable
+          go-version: stable
 
       - uses: goreleaser/goreleaser-action@v4
         with:

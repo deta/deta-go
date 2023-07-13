@@ -6,23 +6,27 @@ on:
     tags:
       - "v*.*.*"
 
-  permissions:
-    contents: write
+permissions:
+  contents: write
 
-  jobs:
-    goreleaser:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
-          with:
-            fetch-depth: 0
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-        - run: git fetch --force -t-tags
+      - run: git fetch --force -t-tags
 
-        - uses: goreleaser/goreleaser-action@v4
-          with:
-            distribution: goreleaser
-            version: latest
-            args: release --clean
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-go@v4
+        with:
+          - go-version: stable
+
+      - uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,3 +1,5 @@
 !.gitignore
 .*
 !.github/
+!.goreleaser.yaml
+dist/
